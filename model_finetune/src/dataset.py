@@ -17,7 +17,7 @@ class CustomDataset(Dataset):
         logger.info(f"Loading dataset '{dataset_name}' (subset: '{subset}', split: '{split}')...")
         
         # Load dataset from Hugging Face
-        raw_dataset = load_dataset(dataset_name, name=subset, split=split)
+        raw_dataset = load_dataset(dataset_name, name=subset, split=split, trust_remote_code=True)
         
         # Optionally slice/limit samples for verification or resource constraints
         if max_samples and max_samples < len(raw_dataset):
