@@ -11,6 +11,7 @@ import {
   Platform,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { apiService, User } from '../services/api';
@@ -67,6 +68,25 @@ const TypingDot = ({ delay }: { delay: number }) => {
   );
 };
 
+// Selection Constants
+const COUNTRIES = [
+  { code: 'auto', name: 'Auto', flag: '🌐' },
+  { code: 'United States', name: 'USA', flag: '🇺🇸' },
+  { code: 'United Kingdom', name: 'UK', flag: '🇬🇧' },
+  { code: 'Saudi Arabia', name: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: 'Germany', name: 'Germany', flag: '🇩🇪' },
+  { code: 'France', name: 'France', flag: '🇫🇷' },
+];
+
+const LANGUAGES = [
+  { code: 'auto', name: 'Auto', flag: '🌐' },
+  { code: 'English', name: 'English', flag: '🇺🇸' },
+  { code: 'Arabic', name: 'Arabic', flag: '🇸🇦' },
+  { code: 'Spanish', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'French', name: 'French', flag: '🇫🇷' },
+  { code: 'German', name: 'German', flag: '🇩🇪' },
+];
+
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
@@ -75,56 +95,37 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [activeHistory, setActiveHistory] = useState('Commercial Lease Review');
+  
+  // Country & Language settings
+  const [selectedCountry, setSelectedCountry] = useState('auto');
+  const [selectedLanguage, setSelectedLanguage] = useState('auto');
+
+  // Backend session & chats tracking states
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionsList, setSessionsList] = useState<any[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [inputHeight, setInputHeight] = useState(48);
 
-  // Initial mock messages based exactly on the HTML template
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: '1',
+      id: 'welcome-msg',
       sender: 'ai',
       type: 'suggested_starts',
-      text: 'Hello Counselor. I am ready to assist with your legal inquiries. I can help with case law research, contract analysis, or drafting legal memorandums.',
+      text: 'Hello Counselor. I am ready to assist with your legal inquiries. Select a jurisdiction and language to start a new consultation.',
       bulletPoints: [
         'Review a standard SaaS agreement for liability gaps',
         'Compare New York vs. Delaware corporate governance laws',
         'Summarize recent precedents regarding remote work privacy',
       ],
     },
-    {
-      id: '2',
-      sender: 'user',
-      type: 'text',
-      text: 'What are the primary tenant rights regarding security deposit returns in California?',
-    },
-    {
-      id: '3',
-      sender: 'ai',
-      type: 'california_law',
-      text: 'Under California law, several strict timelines and procedures apply to the return of residential security deposits:',
-      title: 'California Security Deposit Law (Civil Code § 1950.5)',
-      gridItems: [
-        {
-          title: '21-Day Deadline',
-          desc: 'The landlord has 21 calendar days after you move out to return the full deposit or an itemized statement.',
-        },
-        {
-          title: 'Itemization Requirement',
-          desc: 'If deductions exceed $125, the landlord MUST provide copies of receipts for repairs.',
-        },
-      ],
-      orderedItems: [
-        'Pre-move-out inspection: You have a right to request an inspection 2 weeks before moving.',
-        'Normal Wear and Tear: Landlords cannot deduct for typical usage of the property.',
-      ],
-    },
   ]);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Fetch current user info if available to personalize profile initials
+  // Load user info & active sessions on mount
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -137,7 +138,26 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
       }
     };
     fetchUser();
+    fetchSessions(true); // Load last active session if exists
   }, []);
+
+  const fetchSessions = async (loadLastSession = false) => {
+    setIsLoadingSessions(true);
+    try {
+      const res = await apiService.listSessions();
+      if (res.success && res.data) {
+        setSessionsList(res.data);
+        // If we want to load the last session on mount and one exists:
+        if (loadLastSession && res.data.length > 0) {
+          handleSelectSession(res.data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to list sessions', err);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
 
   const handleLogout = () => {
     apiService.clearTokens();
@@ -151,93 +171,102 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
     }, 100);
   };
 
-  // Generate responsive response based on prompt text
-  const generateAIResponse = (prompt: string): ChatMessage => {
-    const promptClean = prompt.trim().toLowerCase();
+  const handleSelectSession = async (sessionId: string) => {
+    setActiveSessionId(sessionId);
+    setIsSidebarOpen(false);
+    setIsTyping(false);
 
-    if (promptClean.includes('tenant') || promptClean.includes('rights')) {
-      return {
-        id: Date.now().toString(),
-        sender: 'ai',
-        type: 'california_law',
-        text: 'Residential tenant protections focus heavily on habitable standards and security deposits. Here are key legal criteria:',
-        title: 'Overview of Residential Tenant Rights',
-        gridItems: [
+    try {
+      const response = await apiService.getSessionDetail(sessionId);
+      if (response.success && response.data) {
+        const sessionDetail = response.data;
+        setSelectedCountry(sessionDetail.country || 'auto');
+        setSelectedLanguage(sessionDetail.language || 'auto');
+
+        // Convert backend messages (role/text) to frontend ChatMessage list
+        const formattedMessages: ChatMessage[] = sessionDetail.messages.map((m: any) => ({
+          id: m.id,
+          sender: m.role === 'user' ? 'user' : 'ai',
+          type: 'text',
+          text: m.text,
+        }));
+
+        setMessages(formattedMessages.length > 0 ? formattedMessages : [
           {
-            title: 'Habitable Housing',
-            desc: 'The landlord is legally required to keep the rental unit fit for human occupation (running water, heat, structural safety).',
-          },
-          {
-            title: 'Privacy Protection',
-            desc: 'Landlords must provide notice (normally 24 to 48 hours) before entering, except for emergencies.',
-          },
-        ],
-        orderedItems: [
-          'Right to organize tenant unions to advocate for safer premises and rent caps.',
-          'Freedom from retaliation or arbitrary eviction when requesting code inspections.',
-        ],
-      };
+            id: 'welcome-msg',
+            sender: 'ai',
+            type: 'suggested_starts',
+            text: 'This session is empty. Select a jurisdiction and language to start a new consultation.',
+            bulletPoints: [
+              'Review a standard SaaS agreement for liability gaps',
+              'Compare New York vs. Delaware corporate governance laws',
+              'Summarize recent precedents regarding remote work privacy',
+            ],
+          }
+        ]);
+        scrollToBottom();
+      }
+    } catch (err) {
+      console.log('Failed to fetch session detail', err);
     }
-
-    if (promptClean.includes('breach') || promptClean.includes('contract')) {
-      return {
-        id: Date.now().toString(),
-        sender: 'ai',
-        type: 'california_law',
-        text: 'A cause of action for breach of contract requires proving specific legal elements in civil court:',
-        title: 'Breach of Contract Elements & Claims',
-        gridItems: [
-          {
-            title: 'Valid Agreement',
-            desc: 'Requires a clear offer, acceptance, mutual assent to essential terms, and valid consideration.',
-          },
-          {
-            title: 'Material Breach',
-            desc: 'A significant failure to perform a key obligation that defeats the primary purpose of the contract.',
-          },
-        ],
-        orderedItems: [
-          'Proof of performance: The non-breaching party must show they fulfilled their obligations under the pact.',
-          'Direct damages: The breach directly led to quantifiable financial loss or specific performance failure.',
-        ],
-      };
-    }
-
-    if (promptClean.includes('employment') || promptClean.includes('work')) {
-      return {
-        id: Date.now().toString(),
-        sender: 'ai',
-        type: 'california_law',
-        text: 'Employment relationships are subject to federal and state labor standards covering contracts and hours:',
-        title: 'Employment Law Framework Overview',
-        gridItems: [
-          {
-            title: 'At-Will Status',
-            desc: 'Allows either employer or worker to terminate employment at any time for any legal reason or no reason.',
-          },
-          {
-            title: 'Wage & Hour Laws',
-            desc: 'Ensures compliance with statutory minimum wage rates, overtime premiums, and mandatory rest periods.',
-          },
-        ],
-        orderedItems: [
-          'Anti-discrimination: Protection from adverse actions based on race, gender, religion, or age.',
-          'Safe workspace: Obligation to maintain conditions free of occupational hazards and unlawful harassment.',
-        ],
-      };
-    }
-
-    // Default response
-    return {
-      id: Date.now().toString(),
-      sender: 'ai',
-      type: 'text',
-      text: `Thank you for your inquiry about "${prompt}". Based on a general review, you should verify specific state statutes and local regulations. LexisAI Assistant has recorded this request in your console file. Please specify if you would like me to draft a legal memorandum template for this issue.`,
-    };
   };
 
-  const handleSendMessage = (textToSend: string) => {
+  const handleNewConsultation = async () => {
+    setIsTyping(false);
+    setInputValue('');
+    setActiveSessionId(null);
+    
+    // Start session in state only; backend session will be created on first message
+    setMessages([
+      {
+        id: 'welcome-msg',
+        sender: 'ai',
+        type: 'suggested_starts',
+        text: `Hello Counselor. I am ready to assist with your legal inquiries. Select a jurisdiction and language to start a new consultation.`,
+        bulletPoints: [
+          'Review a standard SaaS agreement for liability gaps',
+          'Compare New York vs. Delaware corporate governance laws',
+          'Summarize recent precedents regarding remote work privacy',
+        ],
+      }
+    ]);
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      const res = await apiService.deleteSession(sessionId);
+      if (res.success) {
+        if (activeSessionId === sessionId) {
+          handleNewConsultation();
+        }
+        fetchSessions(false);
+      }
+    } catch (err) {
+      console.error('Failed to delete session', err);
+    }
+  };
+
+  const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim()) return;
+
+    let sessionId = activeSessionId;
+
+    // Start a new session on backend on the fly if none is active
+    if (!sessionId) {
+      try {
+        const startRes = await apiService.startSession(selectedLanguage, selectedCountry);
+        if (startRes.success && startRes.data) {
+          sessionId = startRes.data.session_id;
+          setActiveSessionId(sessionId);
+        } else {
+          Alert.alert('Session Error', 'Could not create a new chat session on the server.');
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to start session on the fly', err);
+        return;
+      }
+    }
 
     // Append User Message
     const userMsg: ChatMessage = {
@@ -253,13 +282,49 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
     setIsTyping(true);
     scrollToBottom();
 
-    // Simulated typing response delay
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(textToSend);
-      setMessages((prev) => [...prev, aiResponse]);
+    try {
+      const response = await apiService.sendMessage(
+        textToSend.trim(),
+        sessionId,
+        selectedLanguage,
+        selectedCountry
+      );
+
       setIsTyping(false);
+
+      if (response.success && response.data) {
+        const aiResponse: ChatMessage = {
+          id: Date.now().toString(),
+          sender: 'ai',
+          type: 'text',
+          text: response.data.answer,
+        };
+        setMessages((prev) => [...prev, aiResponse]);
+        scrollToBottom();
+
+        // Refresh list to update sidebar and session names
+        fetchSessions(false);
+      } else {
+        const errorMsg: ChatMessage = {
+          id: Date.now().toString(),
+          sender: 'ai',
+          type: 'text',
+          text: response.error?.message || 'Error communicating with assistant. Please make sure Ollama is running.',
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+        scrollToBottom();
+      }
+    } catch (err: any) {
+      setIsTyping(false);
+      const errorMsg: ChatMessage = {
+        id: Date.now().toString(),
+        sender: 'ai',
+        type: 'text',
+        text: err.message || 'Network error occurred.',
+      };
+      setMessages((prev) => [...prev, errorMsg]);
       scrollToBottom();
-    }, 1500);
+    }
   };
 
   // Get user display details
@@ -278,7 +343,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
       {/* New Consultation button */}
       <TouchableOpacity
         style={styles.newConsultationBtn}
-        onPress={() => handleSendMessage('Hello Counselor. Start a new consultation for me.')}
+        onPress={handleNewConsultation}
         activeOpacity={0.9}
       >
         <MaterialIcons name="add-box" size={20} color="#ffffff" style={styles.newConsultationIcon} />
@@ -289,83 +354,48 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
       <ScrollView style={styles.sidebarNav} showsVerticalScrollIndicator={false}>
         <Text style={styles.sidebarNavHeader}>Recent History</Text>
 
-        <TouchableOpacity
-          style={[
-            styles.sidebarNavItem,
-            activeHistory === 'Commercial Lease Review' && styles.sidebarNavItemActive,
-          ]}
-          onPress={() => {
-            setActiveHistory('Commercial Lease Review');
-            setIsSidebarOpen(false);
-          }}
-        >
-          <MaterialIcons
-            name="history"
-            size={20}
-            color={activeHistory === 'Commercial Lease Review' ? '#6366f1' : '#64748b'}
-          />
-          <Text
-            style={[
-              styles.sidebarNavItemText,
-              activeHistory === 'Commercial Lease Review' && styles.sidebarNavItemTextActive,
-            ]}
-            numberOfLines={1}
-          >
-            Commercial Lease Review
-          </Text>
-        </TouchableOpacity>
+        {isLoadingSessions ? (
+          <ActivityIndicator size="small" color="#6366f1" style={{ marginVertical: 16 }} />
+        ) : sessionsList.length === 0 ? (
+          <Text style={styles.emptySessionsText}>No recent chats</Text>
+        ) : (
+          sessionsList.map((session) => (
+            <View key={session.id} style={styles.sidebarNavItemContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.sidebarNavItem,
+                  activeSessionId === session.id && styles.sidebarNavItemActive,
+                  { flex: 1, marginRight: 4 }
+                ]}
+                onPress={() => handleSelectSession(session.id)}
+              >
+                <MaterialIcons
+                  name="chat-bubble-outline"
+                  size={18}
+                  color={activeSessionId === session.id ? '#6366f1' : '#64748b'}
+                />
+                <Text
+                  style={[
+                    styles.sidebarNavItemText,
+                    activeSessionId === session.id && styles.sidebarNavItemTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {session.title}
+                </Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.sidebarNavItem,
-            activeHistory === 'NDA Clauses Breakdown' && styles.sidebarNavItemActive,
-          ]}
-          onPress={() => {
-            setActiveHistory('NDA Clauses Breakdown');
-            setIsSidebarOpen(false);
-          }}
-        >
-          <MaterialIcons
-            name="history-edu"
-            size={20}
-            color={activeHistory === 'NDA Clauses Breakdown' ? '#6366f1' : '#64748b'}
-          />
-          <Text
-            style={[
-              styles.sidebarNavItemText,
-              activeHistory === 'NDA Clauses Breakdown' && styles.sidebarNavItemTextActive,
-            ]}
-            numberOfLines={1}
-          >
-            NDA Clauses Breakdown
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.sidebarNavItem,
-            activeHistory === 'Tenant Rights Analysis' && styles.sidebarNavItemActive,
-          ]}
-          onPress={() => {
-            setActiveHistory('Tenant Rights Analysis');
-            setIsSidebarOpen(false);
-          }}
-        >
-          <MaterialIcons
-            name="description"
-            size={20}
-            color={activeHistory === 'Tenant Rights Analysis' ? '#6366f1' : '#64748b'}
-          />
-          <Text
-            style={[
-              styles.sidebarNavItemText,
-              activeHistory === 'Tenant Rights Analysis' && styles.sidebarNavItemTextActive,
-            ]}
-            numberOfLines={1}
-          >
-            Tenant Rights Analysis
-          </Text>
-        </TouchableOpacity>
+              {/* Delete session button */}
+              <TouchableOpacity
+                style={styles.deleteSessionBtn}
+                onPress={() => handleDeleteSession(session.id)}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="delete-outline" size={16} color="#dc2626" />
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
 
         <Text style={[styles.sidebarNavHeader, { marginTop: 24 }]}>Library</Text>
         <TouchableOpacity style={styles.sidebarNavItem}>
@@ -408,6 +438,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
       </View>
     </View>
   );
+
 
   return (
     <SafeAreaView style={styles.outerContainer}>
@@ -462,6 +493,61 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
               >
                 <MaterialIcons name="share" size={20} color="#64748b" />
               </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Country & Language Selectors */}
+          <View style={styles.selectorBar}>
+            <View style={styles.selectorContainer}>
+              <View style={styles.selectorSection}>
+                <Text style={styles.selectorTitleText}>Jurisdiction</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
+                  {COUNTRIES.map((c) => (
+                    <TouchableOpacity
+                      key={c.code}
+                      style={[
+                        styles.selectorChip,
+                        selectedCountry === c.code && styles.selectorChipActive
+                      ]}
+                      onPress={() => setSelectedCountry(c.code)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[
+                        styles.selectorChipText,
+                        selectedCountry === c.code && styles.selectorChipTextActive
+                      ]}>
+                        {c.flag} {c.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.selectorSectionDivider} />
+
+              <View style={styles.selectorSection}>
+                <Text style={styles.selectorTitleText}>Language</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
+                  {LANGUAGES.map((l) => (
+                    <TouchableOpacity
+                      key={l.code}
+                      style={[
+                        styles.selectorChip,
+                        selectedLanguage === l.code && styles.selectorChipActive
+                      ]}
+                      onPress={() => setSelectedLanguage(l.code)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[
+                        styles.selectorChipText,
+                        selectedLanguage === l.code && styles.selectorChipTextActive
+                      ]}>
+                        {l.flag} {l.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
             </View>
           </View>
 
@@ -1811,5 +1897,112 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+  },
+  sidebarNavItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  deleteSessionBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.6,
+  },
+  emptySessionsText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginVertical: 16,
+    fontStyle: 'italic',
+  },
+  selectorBar: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(240, 242, 245, 0.9)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  selectorContainer: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    alignItems: Platform.OS === 'web' ? 'center' : 'stretch',
+    gap: Platform.OS === 'web' ? 24 : 12,
+  },
+  selectorSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  selectorTitleText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginRight: 12,
+    minWidth: 80,
+  },
+  selectorSectionDivider: {
+    width: Platform.OS === 'web' ? 1 : 0,
+    height: Platform.OS === 'web' ? 24 : 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  selectorChipsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
+    gap: 8,
+  },
+  selectorChip: {
+    backgroundColor: '#f0f2f5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    ...Platform.select({
+      web: {
+        boxShadow: '2px 2px 4px #d1d9e6, -2px -2px 4px #ffffff',
+      },
+      ios: {
+        shadowColor: '#d1d9e6',
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.5,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  selectorChipActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 8px rgba(99, 102, 241, 0.3)',
+      },
+      ios: {
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  selectorChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+  },
+  selectorChipTextActive: {
+    color: '#ffffff',
   },
 });

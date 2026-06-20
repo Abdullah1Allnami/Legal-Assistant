@@ -204,4 +204,181 @@ export const apiService = {
       return false;
     }
   },
+
+  // HTTP POST for starting a new chat session
+  startSession: async (language: string = 'auto', country: string = 'auto'): Promise<StandardResponse<{ session_id: string; status: string }>> => {
+    try {
+      const data = await authFetch(`${API_URL}/session/start`, {
+        method: 'POST',
+        body: JSON.stringify({ language, country }),
+      });
+      return data;
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.message || 'Unable to start chat session.',
+        },
+      };
+    }
+  },
+
+  // HTTP POST for ending/deactivating a session
+  endSession: async (sessionId: string): Promise<StandardResponse<{ status: string }>> => {
+    try {
+      const data = await authFetch(`${API_URL}/session/end`, {
+        method: 'POST',
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      return data;
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.message || 'Unable to end chat session.',
+        },
+      };
+    }
+  },
+
+  // HTTP POST to send a message to the AI legal assistant
+  sendMessage: async (message: string, sessionId?: string, language: string = 'auto', country: string = 'auto'): Promise<StandardResponse<{ answer: string; citations: any[] }>> => {
+    try {
+      const data = await authFetch(`${API_URL}/gateway/chat`, {
+        method: 'POST',
+        body: JSON.stringify({
+          message,
+          session_id: sessionId || null,
+          language,
+          country,
+        }),
+      });
+      return data;
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.message || 'Unable to send message to the assistant.',
+        },
+      };
+    }
+  },
+
+  // HTTP GET to list all chat sessions for the authenticated user
+  listSessions: async (): Promise<StandardResponse<any[]>> => {
+    try {
+      const data = await authFetch(`${API_URL}/chat/sessions`, {
+        method: 'GET',
+      });
+      return data;
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.message || 'Unable to fetch chat history.',
+        },
+      };
+    }
+  },
+
+  // HTTP GET to fetch details of a specific chat session (with its messages)
+  getSessionDetail: async (sessionId: string): Promise<StandardResponse<any>> => {
+    try {
+      const data = await authFetch(`${API_URL}/chat/sessions/${sessionId}`, {
+        method: 'GET',
+      });
+      return data;
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.message || 'Unable to fetch chat session details.',
+        },
+      };
+    }
+  },
+
+  // HTTP PATCH to rename a chat session title
+  renameSession: async (sessionId: string, title: string): Promise<StandardResponse<any>> => {
+    try {
+      const data = await authFetch(`${API_URL}/chat/sessions/${sessionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title }),
+      });
+      return data;
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.message || 'Unable to rename chat session.',
+        },
+      };
+    }
+  },
+
+  // HTTP DELETE to remove a chat session
+  deleteSession: async (sessionId: string): Promise<StandardResponse<string>> => {
+    try {
+      const data = await authFetch(`${API_URL}/chat/sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
+      return data;
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error.message || 'Unable to delete chat session.',
+        },
+      };
+    }
+  },
 };
+
+// Internal authorized fetch helper
+const authFetch = async (url: string, options: RequestInit = {}): Promise<any> => {
+  const token = apiService.getAccessToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401) {
+    const refreshed = await apiService.refreshToken();
+    if (refreshed) {
+      const newToken = apiService.getAccessToken();
+      const newHeaders = {
+        ...headers,
+        ...(newToken ? { 'Authorization': `Bearer ${newToken}` } : {}),
+      };
+      const retryResponse = await fetch(url, {
+        ...options,
+        headers: newHeaders,
+      });
+      return retryResponse.json();
+    }
+    apiService.clearTokens();
+  }
+
+  return response.json();
+};
+
