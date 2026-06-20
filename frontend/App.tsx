@@ -5,12 +5,16 @@ import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { SignUpScreen } from './src/screens/SignUpScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 
 type ScreenState = 'loading' | 'welcome' | 'login' | 'signup' | 'dashboard';
 
-export default function App() {
+function AppContent() {
   const [currentScreen, setCurrentScreen] = useState<ScreenState>('loading');
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const { theme, isDark } = useTheme();
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Check if user is already authenticated
@@ -54,8 +58,8 @@ export default function App() {
       case 'loading':
         return (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#6366f1" />
-            <Text style={styles.loadingText}>Initializing system...</Text>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.textMuted }]}>{t('initializing')}</Text>
           </View>
         );
       case 'welcome':
@@ -85,21 +89,30 @@ export default function App() {
     }
   };
 
-  const isLightScreen = currentScreen === 'login' || currentScreen === 'signup' || currentScreen === 'welcome';
   const getBackgroundColor = () => {
-    if (currentScreen === 'login') return '#f3f4f6';
-    if (currentScreen === 'signup' || currentScreen === 'welcome') return '#f0f2f5';
-    return '#0d0e12';
+    if (currentScreen === 'login') return theme.bgAlt;
+    if (currentScreen === 'signup' || currentScreen === 'welcome') return theme.bg;
+    return theme.bg;
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
       <StatusBar
-        barStyle={isLightScreen ? 'dark-content' : 'light-content'}
+        barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={getBackgroundColor()}
       />
       {renderScreen()}
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }
 
@@ -113,9 +126,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#94a3b8',
     fontSize: 16,
     fontWeight: '500',
     marginTop: 16,
   },
 });
+

@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../services/api';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SignUpScreenProps {
   onNavigateToLogin: () => void;
@@ -42,6 +44,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmFocused, setConfirmFocused] = useState(false);
 
+  const { theme } = useTheme();
+  const { language, setLanguage, t, isRtl } = useLanguage();
+  const styles = createStyles(theme, isRtl);
+
   const validate = () => {
     let isValid = true;
     setNameError('');
@@ -51,37 +57,37 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
     setGeneralError('');
 
     if (!fullName.trim()) {
-      setNameError('Full Name is required');
+      setNameError(t('name_required'));
       isValid = false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      setEmailError('Work Email is required');
+      setEmailError(t('work_email_required'));
       isValid = false;
     } else if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(t('valid_email_required'));
       isValid = false;
     }
 
     // Password validation: Min 8 chars with at least one symbol
     const symbolRegex = /[!@#$%^&*(),.?":{}|<>]/;
     if (!password) {
-      setPasswordError('Password is required');
+      setPasswordError(t('password_required'));
       isValid = false;
     } else if (password.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      setPasswordError(t('pass_length_required'));
       isValid = false;
     } else if (!symbolRegex.test(password)) {
-      setPasswordError('Password must contain at least one symbol');
+      setPasswordError(t('pass_symbol_required'));
       isValid = false;
     }
 
     if (!confirmPassword) {
-      setConfirmPasswordError('Please confirm your password');
+      setConfirmPasswordError(t('confirm_pass_required'));
       isValid = false;
     } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
+      setConfirmPasswordError(t('pass_match_required'));
       isValid = false;
     }
 
@@ -100,12 +106,12 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
       
       if (response.success) {
         setSignupStatus('success');
-        setSuccessMsg('Account created successfully! Redirecting...');
+        setSuccessMsg(t('account_created_success'));
         setTimeout(() => {
           onSignUpSuccess(email);
         }, 1500);
       } else {
-        const errorMsg = response.error?.message || 'Registration failed. Please try again.';
+        const errorMsg = response.error?.message || t('registration_failed');
         if (response.error?.details && Array.isArray(response.error.details)) {
           const detail = response.error.details[0];
           if (detail.loc?.includes('body') && detail.loc?.includes('password')) {
@@ -119,7 +125,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         setSignupStatus('idle');
       }
     } catch (err: any) {
-      setGeneralError('An unexpected error occurred. Please try again.');
+      setGeneralError(t('unexpected_error'));
       setSignupStatus('idle');
     }
   };
@@ -137,13 +143,17 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
       {/* Header Bar */}
       <View style={styles.navHeader}>
-        <Text style={styles.brandText}>LexisAI</Text>
+        <Text style={styles.brandText}>{t('lexisai')}</Text>
         <View style={styles.navLinks}>
-          <TouchableOpacity onPress={() => Linking.openURL('#')}>
-            <Text style={styles.navLinkText}>Support</Text>
+          <TouchableOpacity onPress={() => setLanguage(language === 'en' ? 'ar' : 'en')} style={styles.langToggleHeaderBtn}>
+            <MaterialIcons name="language" size={16} color={theme.textMuted} style={{ marginRight: isRtl ? 0 : 4, marginLeft: isRtl ? 4 : 0 }} />
+            <Text style={styles.navLinkText}>{language === 'en' ? 'العربية' : 'English'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('#')}>
-            <Text style={[styles.navLinkText, { marginLeft: 16 }]}>Privacy</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('#')} style={{ marginLeft: isRtl ? 0 : 16, marginRight: isRtl ? 16 : 0 }}>
+            <Text style={styles.navLinkText}>{t('support')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('#')} style={{ marginLeft: isRtl ? 0 : 16, marginRight: isRtl ? 16 : 0 }}>
+            <Text style={styles.navLinkText}>{t('privacy')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -152,9 +162,9 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         {/* Sign-Up Card */}
         <View style={styles.card}>
           <View style={styles.header}>
-            <h1 style={styles.title}>Create your account</h1>
+            <Text style={styles.title}>{t('create_account')}</Text>
             <Text style={styles.subtitle}>
-              Join thousands of legal professionals using AI-powered intelligence.
+              {t('join_thousands')}
             </Text>
           </View>
 
@@ -174,19 +184,19 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
           <View style={styles.form}>
             {/* Full Name */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.label}>{t('full_name')}</Text>
               <View style={[
                 styles.inputWrapper,
                 nameFocused && styles.inputWrapperFocused,
                 nameError ? styles.inputWrapperError : null
               ]}>
                 <View style={styles.inputIcon}>
-                  <MaterialIcons name="person" size={20} color="#64748b" />
+                  <MaterialIcons name="person" size={20} color={theme.textMuted} />
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="John Doe"
-                  placeholderTextColor="#cbd5e1"
+                  placeholder={t('full_name')}
+                  placeholderTextColor={theme.isDark ? '#5a6275' : '#cbd5e1'}
                   value={fullName}
                   onChangeText={setFullName}
                   onFocus={() => setNameFocused(true)}
@@ -199,19 +209,19 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
             {/* Work Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Work Email</Text>
+              <Text style={styles.label}>{t('work_email')}</Text>
               <View style={[
                 styles.inputWrapper,
                 emailFocused && styles.inputWrapperFocused,
                 emailError ? styles.inputWrapperError : null
               ]}>
                 <View style={styles.inputIcon}>
-                  <MaterialIcons name="mail" size={20} color="#64748b" />
+                  <MaterialIcons name="mail" size={20} color={theme.textMuted} />
                 </View>
                 <TextInput
                   style={styles.input}
                   placeholder="name@firm.com"
-                  placeholderTextColor="#cbd5e1"
+                  placeholderTextColor={theme.isDark ? '#5a6275' : '#cbd5e1'}
                   value={email}
                   onChangeText={setEmail}
                   onFocus={() => setEmailFocused(true)}
@@ -228,7 +238,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             <View style={styles.passwordRow}>
               {/* Password */}
               <View style={styles.halfInputGroup}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <View style={[
                   styles.inputWrapper,
                   passwordFocused && styles.inputWrapperFocused,
@@ -236,12 +246,12 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                   passwordError ? styles.inputWrapperError : null
                 ]}>
                   <View style={styles.inputIcon}>
-                    <MaterialIcons name="lock" size={20} color="#64748b" />
+                    <MaterialIcons name="lock" size={20} color={theme.textMuted} />
                   </View>
                   <TextInput
                     style={styles.input}
                     placeholder="••••••••"
-                    placeholderTextColor="#cbd5e1"
+                    placeholderTextColor={theme.isDark ? '#5a6275' : '#cbd5e1'}
                     value={password}
                     onChangeText={setPassword}
                     onFocus={() => setPasswordFocused(true)}
@@ -256,19 +266,19 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
               {/* Confirm Password */}
               <View style={styles.halfInputGroup}>
-                <Text style={styles.label}>Confirm Password</Text>
+                <Text style={styles.label}>{t('confirm_password')}</Text>
                 <View style={[
                   styles.inputWrapper,
                   confirmFocused && styles.inputWrapperFocused,
                   confirmPasswordError ? styles.inputWrapperError : null
                 ]}>
                   <View style={styles.inputIcon}>
-                    <MaterialCommunityIcons name="lock-reset" size={20} color="#64748b" />
+                    <MaterialCommunityIcons name="lock-reset" size={20} color={theme.textMuted} />
                   </View>
                   <TextInput
                     style={styles.input}
                     placeholder="••••••••"
-                    placeholderTextColor="#cbd5e1"
+                    placeholderTextColor={theme.isDark ? '#5a6275' : '#cbd5e1'}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     onFocus={() => setConfirmFocused(true)}
@@ -284,9 +294,9 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
             {/* Requirements Ticker */}
             <View style={styles.requirementsTicker}>
-              <MaterialIcons name="info" size={18} color="#6366f1" style={{ marginRight: 8 }} />
+              <MaterialIcons name="info" size={18} color={theme.primary} style={{ marginRight: isRtl ? 0 : 8, marginLeft: isRtl ? 8 : 0 }} />
               <Text style={styles.requirementsText}>
-                Min. 8 characters with at least one symbol.
+                {t('min_pass_req_sub')}
               </Text>
             </View>
 
@@ -304,14 +314,14 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
               {signupStatus === 'creating' ? (
                 <View style={styles.btnContent}>
                   <ActivityIndicator size="small" color="#ffffff" style={styles.spinner} />
-                  <Text style={styles.submitButtonText}>Creating account...</Text>
+                  <Text style={styles.submitButtonText}>{t('creating_account')}</Text>
                 </View>
               ) : signupStatus === 'success' ? (
-                <Text style={styles.submitButtonText}>Success</Text>
+                <Text style={styles.submitButtonText}>{t('success')}</Text>
               ) : (
                 <View style={styles.btnContent}>
-                  <Text style={styles.submitButtonText}>Create account</Text>
-                  <MaterialIcons name="arrow-forward" size={18} color="#ffffff" style={{ marginLeft: 8 }} />
+                  <Text style={styles.submitButtonText}>{t('create_account')}</Text>
+                  <MaterialIcons name={isRtl ? "arrow-back" : "arrow-forward"} size={18} color="#ffffff" style={{ marginLeft: isRtl ? 0 : 8, marginRight: isRtl ? 8 : 0 }} />
                 </View>
               )}
             </TouchableOpacity>
@@ -320,7 +330,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
           {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
+            <Text style={styles.dividerText}>{t('or')}</Text>
           </View>
 
           {/* Google Sign Up */}
@@ -329,14 +339,14 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
               source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAHNj2z0LaE7CLmixsbUDKESq11vwrV0F2NUfI0KOvoDUiLjQZLA_W6fmHe_3oSGaOZCJ8O3xFbKQzVrgRFZydCv0lb9xa7yPuudmDVJE-_-9qoo58z_o9RoP72ONz5hlXixsI8QsExzHuafe3PnzlU4VfcN3a34uEPnHoUzzIfXSVK4DkLwXMkP0_ujEpUVEEuHTZenGxUx-i8bJnFpWxJIziEAInJPxP-AwNqRdqffPVR8iONSEFpEi4vLc_B3B8xvtBeWixIkvFx' }}
               style={styles.googleIcon}
             />
-            <Text style={styles.socialButtonText}>Sign up with Google</Text>
+            <Text style={styles.socialButtonText}>{t('signup_google')}</Text>
           </TouchableOpacity>
 
           {/* Login redirection link */}
           <View style={styles.footerLinkContainer}>
-            <Text style={styles.footerLinkText}>Already have an account? </Text>
+            <Text style={styles.footerLinkText}>{t('already_have_account')} </Text>
             <TouchableOpacity onPress={onNavigateToLogin}>
-              <Text style={styles.loginLink}>Log In</Text>
+              <Text style={styles.loginLink}>{t('log_in')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -344,19 +354,19 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         {/* Trust Badges */}
         <View style={styles.trustContainer}>
           <Text style={styles.agreementText}>
-            By clicking "Create account", you agree to our{' '}
-            <Text style={styles.underlineText} onPress={() => Linking.openURL('#')}>Terms of Service</Text> and{' '}
-            <Text style={styles.underlineText} onPress={() => Linking.openURL('#')}>Privacy Policy</Text>.
+            {t('agreement_text_start')}
+            <Text style={styles.underlineText} onPress={() => Linking.openURL('#')}>{t('terms_service')}</Text>{t('agreement_text_and')}
+            <Text style={styles.underlineText} onPress={() => Linking.openURL('#')}>{t('privacy_policy')}</Text>.
           </Text>
 
           <View style={styles.badgesRow}>
             <View style={styles.badge}>
-              <MaterialIcons name="verified-user" size={16} color="#64748b" style={{ marginRight: 4 }} />
-              <Text style={styles.badgeText}>SOC2 COMPLIANT</Text>
+              <MaterialIcons name="verified-user" size={16} color={theme.textMuted} style={{ marginRight: isRtl ? 0 : 4, marginLeft: isRtl ? 4 : 0 }} />
+              <Text style={styles.badgeText}>{t('soc2_compliant')}</Text>
             </View>
             <View style={styles.badge}>
-              <MaterialIcons name="security" size={16} color="#64748b" style={{ marginRight: 4 }} />
-              <Text style={styles.badgeText}>AES-256 ENCRYPTION</Text>
+              <MaterialIcons name="security" size={16} color={theme.textMuted} style={{ marginRight: isRtl ? 0 : 4, marginLeft: isRtl ? 4 : 0 }} />
+              <Text style={styles.badgeText}>{t('aes_256_enc')}</Text>
             </View>
           </View>
         </View>
@@ -365,14 +375,14 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
       {/* Main Footer */}
       <View style={styles.mainFooter}>
         <Text style={styles.footerCopyright}>
-          © 2024 LexisAI Technologies. Licensed Legal Intelligence.
+          {t('copyright')}
         </Text>
         <View style={styles.footerLinks}>
           <TouchableOpacity onPress={() => Linking.openURL('#')}>
-            <Text style={styles.footerCopyright}>Security</Text>
+            <Text style={styles.footerCopyright}>{t('security')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('#')}>
-            <Text style={[styles.footerCopyright, { marginLeft: 16 }]}>Legal</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('#')} style={{ marginLeft: isRtl ? 0 : 16, marginRight: isRtl ? 16 : 0 }}>
+            <Text style={styles.footerCopyright}>{t('legal')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -380,17 +390,17 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeColors, isRtl: boolean) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingVertical: 40,
     paddingHorizontal: 16,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: theme.bg,
     alignItems: 'center',
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.4,
+    opacity: theme.isDark ? 0.15 : 0.4,
     zIndex: 0,
   },
   blurCircleWhite: {
@@ -400,7 +410,7 @@ const styles = StyleSheet.create({
     width: 500,
     height: 500,
     borderRadius: 250,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.isDark ? '#1a1d24' : '#ffffff',
     ...Platform.select({
       web: {
         filter: 'blur(120px)',
@@ -414,7 +424,7 @@ const styles = StyleSheet.create({
     width: 400,
     height: 400,
     borderRadius: 200,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: theme.isDark ? '#11132e' : '#e0e7ff',
     ...Platform.select({
       web: {
         filter: 'blur(100px)',
@@ -424,7 +434,7 @@ const styles = StyleSheet.create({
   navHeader: {
     width: '100%',
     maxWidth: 1200,
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 40,
@@ -434,17 +444,21 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#6366f1',
+    color: theme.primary,
     letterSpacing: -0.5,
   },
   navLinks: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
   },
   navLinkText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
-    color: '#64748b',
+    color: theme.textMuted,
     fontWeight: '600',
+  },
+  langToggleHeaderBtn: {
+    flexDirection: isRtl ? 'row-reverse' : 'row',
+    alignItems: 'center',
   },
   mainContainer: {
     width: '100%',
@@ -452,19 +466,19 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   card: {
-    backgroundColor: '#f0f2f5',
+    backgroundColor: theme.isDark ? theme.cardBg : theme.bg,
     borderRadius: 16,
     padding: 32,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: theme.cardBorder,
     ...Platform.select({
       web: {
-        boxShadow: '8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff',
+        boxShadow: theme.shadowBox,
       },
       ios: {
-        shadowColor: '#d1d9e6',
+        shadowColor: theme.shadowColor,
         shadowOffset: { width: 8, height: 8 },
-        shadowOpacity: 0.9,
+        shadowOpacity: theme.isDark ? 0.3 : 0.9,
         shadowRadius: 16,
       },
       android: {
@@ -480,14 +494,14 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: theme.text,
     textAlign: 'center',
     marginBottom: 6,
   },
   subtitle: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
-    color: '#64748b',
+    color: theme.textMuted,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -526,7 +540,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   passwordRow: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: Platform.OS === 'web' ? (isRtl ? 'row-reverse' : 'row') : 'column',
     gap: 16,
     marginBottom: 16,
   },
@@ -538,24 +552,26 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1e293b',
-    paddingLeft: 4,
+    color: theme.text,
+    paddingLeft: isRtl ? 0 : 4,
+    paddingRight: isRtl ? 4 : 0,
+    textAlign: isRtl ? 'right' : 'left',
     marginBottom: 6,
   },
   inputWrapper: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: theme.inputBg,
     borderRadius: 12,
     height: 48,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: theme.isDark ? theme.inputBorder : 'transparent',
     ...Platform.select({
       web: {
-        boxShadow: 'inset 6px 6px 12px #d1d9e6, inset -6px -6px 12px #ffffff',
+        boxShadow: theme.shadowInset,
       },
       ios: {
-        shadowColor: '#d1d9e6',
+        shadowColor: theme.shadowColor,
         shadowOffset: { width: 2, height: 2 },
         shadowOpacity: 0.5,
         shadowRadius: 3,
@@ -563,10 +579,12 @@ const styles = StyleSheet.create({
     }),
   },
   inputWrapperFocused: {
-    borderColor: '#6366f1',
+    borderColor: theme.primary,
     ...Platform.select({
       web: {
-        boxShadow: 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff, 0 0 0 2px rgba(99, 102, 241, 0.2)',
+        boxShadow: theme.isDark 
+          ? 'inset 4px 4px 8px rgba(0,0,0,0.3), 0 0 0 2px rgba(99, 102, 241, 0.2)' 
+          : 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff, 0 0 0 2px rgba(99, 102, 241, 0.2)',
       },
     }),
   },
@@ -574,7 +592,9 @@ const styles = StyleSheet.create({
     borderColor: '#ef4444',
     ...Platform.select({
       web: {
-        boxShadow: 'inset 4px 4px 8px #ffdada, inset -4px -4px 8px #ffffff',
+        boxShadow: theme.isDark 
+          ? 'inset 4px 4px 8px rgba(239, 68, 68, 0.1), inset -4px -4px 8px rgba(0,0,0,0.3)' 
+          : 'inset 4px 4px 8px #ffdada, inset -4px -4px 8px #ffffff',
       },
     }),
   },
@@ -582,18 +602,20 @@ const styles = StyleSheet.create({
     borderColor: '#ef4444',
   },
   inputIcon: {
-    paddingLeft: 16,
+    paddingLeft: isRtl ? 0 : 16,
+    paddingRight: isRtl ? 16 : 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
   input: {
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    color: '#1e293b',
+    color: theme.inputText,
     fontSize: 14,
     height: '100%',
-    paddingLeft: 12,
-    paddingRight: 16,
+    paddingLeft: isRtl ? 16 : 12,
+    paddingRight: isRtl ? 12 : 16,
+    textAlign: isRtl ? 'right' : 'left',
     ...Platform.select({
       web: {
         outlineWidth: 0,
@@ -605,32 +627,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     marginTop: 4,
-    paddingLeft: 4,
+    paddingLeft: isRtl ? 0 : 4,
+    paddingRight: isRtl ? 4 : 0,
+    textAlign: isRtl ? 'right' : 'left',
   },
   requirementsTicker: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(240, 242, 245, 0.5)',
+    backgroundColor: theme.isDark ? 'rgba(99, 102, 241, 0.05)' : 'rgba(240, 242, 245, 0.5)',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: theme.cardBorder,
     marginBottom: 20,
     ...Platform.select({
       web: {
-        boxShadow: 'inset 6px 6px 12px #d1d9e6, inset -6px -6px 12px #ffffff',
+        boxShadow: theme.shadowInset,
       },
     }),
   },
   requirementsText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    color: '#64748b',
+    color: theme.textMuted,
     fontSize: 12,
     fontWeight: '500',
     flex: 1,
+    textAlign: isRtl ? 'right' : 'left',
   },
   submitButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     borderRadius: 12,
     height: 48,
     alignItems: 'center',
@@ -638,10 +663,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     ...Platform.select({
       web: {
-        boxShadow: '4px 4px 12px rgba(99, 102, 241, 0.3), -4px -4px 12px rgba(255, 255, 255, 0.8)',
+        boxShadow: theme.isDark ? 'none' : '4px 4px 12px rgba(99, 102, 241, 0.3), -4px -4px 12px rgba(255, 255, 255, 0.8)',
       },
       ios: {
-        shadowColor: '#6366f1',
+        shadowColor: theme.primary,
         shadowOffset: { width: 4, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 6,
@@ -652,7 +677,7 @@ const styles = StyleSheet.create({
     }),
   },
   submitButtonCreating: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: theme.primaryHover,
     ...Platform.select({
       web: {
         boxShadow: 'inset 4px 4px 8px rgba(0, 0, 0, 0.1)',
@@ -660,7 +685,7 @@ const styles = StyleSheet.create({
     }),
   },
   submitButtonSuccess: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.accent,
     ...Platform.select({
       web: {
         boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.1)',
@@ -674,7 +699,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   btnContent: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -693,32 +718,32 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
   },
   dividerText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: theme.isDark ? theme.cardBg : theme.bg,
     paddingHorizontal: 16,
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#64748b',
+    color: theme.textMuted,
     zIndex: 1,
   },
   socialButton: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: theme.isDark ? theme.cardBg : theme.bg,
     borderRadius: 12,
     height: 48,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: theme.cardBorder,
     ...Platform.select({
       web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
+        boxShadow: theme.shadowBox,
       },
       ios: {
-        shadowColor: '#d1d9e6',
+        shadowColor: theme.shadowColor,
         shadowOffset: { width: 4, height: 4 },
         shadowOpacity: 0.6,
         shadowRadius: 6,
@@ -731,27 +756,28 @@ const styles = StyleSheet.create({
   googleIcon: {
     width: 20,
     height: 20,
-    marginRight: 8,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
   },
   socialButtonText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: theme.text,
   },
   footerLinkContainer: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     justifyContent: 'center',
     marginTop: 32,
   },
   footerLinkText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    color: '#64748b',
+    color: theme.textMuted,
     fontSize: 14,
   },
   loginLink: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    color: '#6366f1',
+    color: theme.primary,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -762,8 +788,8 @@ const styles = StyleSheet.create({
   agreementText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
+    color: theme.textMuted,
+    textAlign: isRtl ? 'right' : 'left',
     lineHeight: 18,
     opacity: 0.8,
     paddingHorizontal: 16,
@@ -772,32 +798,32 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   badgesRow: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     justifyContent: 'center',
     gap: 24,
     marginTop: 16,
     opacity: 0.4,
   },
   badge: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
   },
   badgeText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#64748b',
+    color: theme.textMuted,
     letterSpacing: 1,
   },
   mainFooter: {
     width: '100%',
     maxWidth: 1200,
     borderTopWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#f0f2f5',
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#cbd5e1',
+    backgroundColor: theme.bg,
     marginTop: 40,
     paddingTop: 16,
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: Platform.OS === 'web' ? (isRtl ? 'row-reverse' : 'row') : 'column',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 8,
@@ -805,9 +831,10 @@ const styles = StyleSheet.create({
   footerCopyright: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 12,
-    color: '#64748b',
+    color: theme.textLight,
   },
   footerLinks: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
+    marginTop: Platform.OS === 'web' ? 0 : 8,
   },
 });

@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService, TokenData } from '../services/api';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface LoginScreenProps {
   onNavigateToSignUp: () => void;
@@ -36,6 +38,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
+  const { theme } = useTheme();
+  const { language, setLanguage, t, isRtl } = useLanguage();
+  const styles = createStyles(theme, isRtl);
+
   const validate = () => {
     let isValid = true;
     setEmailError('');
@@ -44,15 +50,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      setEmailError('Email Address is required');
+      setEmailError(t('email_required'));
       isValid = false;
     } else if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(t('valid_email_required'));
       isValid = false;
     }
 
     if (!password) {
-      setPasswordError('Password is required');
+      setPasswordError(t('password_required'));
       isValid = false;
     }
 
@@ -75,12 +81,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           onLoginSuccess(response.data!);
         }, 1200);
       } else {
-        const errorMsg = response.error?.message || 'Login failed. Please verify your credentials.';
+        const errorMsg = response.error?.message || t('login_failed');
         setGeneralError(errorMsg);
         setLoginStatus('idle');
       }
     } catch (err: any) {
-      setGeneralError('An unexpected error occurred. Please try again.');
+      setGeneralError(t('unexpected_error'));
       setLoginStatus('idle');
     }
   };
@@ -93,14 +99,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       <View style={styles.mainContainer}>
         {/* Main Card (silk-convex Neomorphic style) */}
         <View style={styles.card}>
+          {/* Language Toggle */}
+          <View style={styles.langToggleContainer}>
+            <TouchableOpacity
+              style={styles.langToggleBtn}
+              onPress={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="language" size={16} color={theme.primary} style={styles.langToggleIcon} />
+              <Text style={styles.langToggleText}>
+                {language === 'en' ? 'العربية' : 'English'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           
           {/* Header Section */}
           <View style={styles.header}>
             <View style={styles.gavelContainer}>
-              <MaterialIcons name="gavel" size={32} color="#6366f1" />
+              <MaterialIcons name="gavel" size={32} color={theme.primary} />
             </View>
-            <Text style={styles.title}>LexisAI</Text>
-            <Text style={styles.subtitle}>Sign in to your legal intelligence dashboard</Text>
+            <Text style={styles.title}>{t('lexisai')}</Text>
+            <Text style={styles.subtitle}>{t('login_subtitle')}</Text>
           </View>
 
           {generalError ? (
@@ -113,19 +132,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <View style={styles.form}>
             {/* Email Field */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={styles.label}>{t('email_address')}</Text>
               <View style={[
                 styles.inputWrapper,
                 emailFocused && styles.inputWrapperFocused,
                 emailError ? styles.inputWrapperError : null
               ]}>
                 <View style={styles.inputIcon}>
-                  <MaterialIcons name="alternate-email" size={20} color="#4b5563" />
+                  <MaterialIcons name="alternate-email" size={20} color={theme.textMuted} />
                 </View>
                 <TextInput
                   style={styles.input}
                   placeholder="name@firm.com"
-                  placeholderTextColor="#a1a1aa"
+                  placeholderTextColor={theme.isDark ? '#5a6275' : '#a1a1aa'}
                   value={email}
                   onChangeText={setEmail}
                   onFocus={() => setEmailFocused(true)}
@@ -141,9 +160,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {/* Password Field */}
             <View style={styles.inputGroup}>
               <View style={styles.passwordHeader}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <TouchableOpacity onPress={() => Linking.openURL('#')}>
-                  <Text style={styles.forgotPassword}>Forgot password?</Text>
+                  <Text style={styles.forgotPassword}>{t('forgot_password')}</Text>
                 </TouchableOpacity>
               </View>
               <View style={[
@@ -152,12 +171,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 passwordError ? styles.inputWrapperError : null
               ]}>
                 <View style={styles.inputIcon}>
-                  <MaterialIcons name="lock" size={20} color="#4b5563" />
+                  <MaterialIcons name="lock" size={20} color={theme.textMuted} />
                 </View>
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
-                  placeholderTextColor="#a1a1aa"
+                  placeholderTextColor={theme.isDark ? '#5a6275' : '#a1a1aa'}
                   value={password}
                   onChangeText={setPassword}
                   onFocus={() => setPasswordFocused(true)}
@@ -184,12 +203,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               {loginStatus === 'verifying' ? (
                 <View style={styles.btnContent}>
                   <ActivityIndicator size="small" color="#ffffff" style={styles.spinner} />
-                  <Text style={styles.submitButtonText}>Verifying...</Text>
+                  <Text style={styles.submitButtonText}>{t('verifying')}</Text>
                 </View>
               ) : loginStatus === 'success' ? (
-                <Text style={styles.submitButtonText}>Success</Text>
+                <Text style={styles.submitButtonText}>{t('success')}</Text>
               ) : (
-                <Text style={styles.submitButtonText}>Login</Text>
+                <Text style={styles.submitButtonText}>{t('log_in')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -197,7 +216,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or continue with</Text>
+            <Text style={styles.dividerText}>{t('or_continue_with')}</Text>
           </View>
 
           {/* Social Logins */}
@@ -207,33 +226,33 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD52f96UBSagMCzQ42BBVMwDL_0WVZUZPdXB5FZtyK2N17ZdcILvKS2Y1f7FzEAQEofG4JFt3VHXsFxVBuzFqV4ujLzG3QbYiNfdIdWRFrlOM2jsxHHJIBVCbrzEGq4nRdwmLf0PfmmZTEGkn8F6D_PZUfu7AEMdA8g1kAEts2pgxlNY4VEsyOoVBahbbZrta3AkHeDd2WWHU5_YDkHtHEtykpSjA30RXonTV6bbRib4UVATrZRJW8RdhH64XZiXsZySxSEaCIDx-yh' }}
                 style={styles.socialIconGoogle}
               />
-              <Text style={styles.socialButtonText}>Google</Text>
+              <Text style={styles.socialButtonText}>{t('google')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-              <MaterialCommunityIcons name="github" size={20} color="#1f2937" style={styles.socialIconGithub} />
-              <Text style={styles.socialButtonText}>GitHub</Text>
+              <MaterialCommunityIcons name="github" size={20} color={theme.isDark ? '#f8fafc' : '#1f2937'} style={styles.socialIconGithub} />
+              <Text style={styles.socialButtonText}>{t('github')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Footer Section */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>{t('dont_have_account')} </Text>
             <TouchableOpacity onPress={onNavigateToSignUp}>
-              <Text style={styles.createAccountLink}>Create account</Text>
+              <Text style={styles.createAccountLink}>{t('create_account')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* System Footer */}
         <View style={styles.systemFooter}>
-          <Text style={styles.systemFooterText}>© 2024 LexisAI Technologies</Text>
+          <Text style={styles.systemFooterText}>{t('system_copyright')}</Text>
           <View style={styles.systemFooterLinks}>
             <TouchableOpacity onPress={() => Linking.openURL('#')}>
-              <Text style={[styles.systemFooterText, styles.systemLink]}>Privacy</Text>
+              <Text style={[styles.systemFooterText, styles.systemLink]}>{t('privacy')}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => Linking.openURL('#')}>
-              <Text style={[styles.systemFooterText, styles.systemLink, { marginLeft: 16 }]}>Terms</Text>
+              <Text style={[styles.systemFooterText, styles.systemLink, { marginLeft: isRtl ? 0 : 16, marginRight: isRtl ? 16 : 0 }]}>{t('terms')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -242,19 +261,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeColors, isRtl: boolean) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#f3f4f6', // Light gray background
+    backgroundColor: theme.bgAlt,
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
     ...Platform.select({
       web: {
-        backgroundImage: 'linear-gradient(to bottom right, #f3f4f6, #f3f4f6, #e5e7eb)',
+        backgroundImage: theme.isDark 
+          ? 'linear-gradient(to bottom right, #0d0e12, #0d0e12, #090a0f)'
+          : 'linear-gradient(to bottom right, #f3f4f6, #f3f4f6, #e5e7eb)',
       },
     }),
   },
@@ -264,25 +285,50 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   card: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.isDark ? theme.cardBg : theme.bgAlt,
     borderRadius: 24,
     padding: 32,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: theme.cardBorder,
     ...Platform.select({
       web: {
-        boxShadow: '8px 8px 16px #d1d1d1, -8px -8px 16px #ffffff',
+        boxShadow: theme.shadowBox,
       },
       ios: {
-        shadowColor: '#d1d1d1',
+        shadowColor: theme.shadowColor,
         shadowOffset: { width: 8, height: 8 },
-        shadowOpacity: 0.9,
+        shadowOpacity: theme.isDark ? 0.3 : 0.9,
         shadowRadius: 12,
       },
       android: {
         elevation: 6,
       },
     }),
+  },
+  langToggleContainer: {
+    flexDirection: isRtl ? 'row' : 'row-reverse',
+    marginBottom: -16,
+    zIndex: 15,
+  },
+  langToggleBtn: {
+    flexDirection: isRtl ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#f3f4f6',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+  },
+  langToggleIcon: {
+    marginRight: isRtl ? 0 : 4,
+    marginLeft: isRtl ? 4 : 0,
+  },
+  langToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.textMuted,
+    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   header: {
     alignItems: 'center',
@@ -292,18 +338,18 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.isDark ? 'rgba(99, 102, 241, 0.05)' : theme.bgAlt,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255, 255, 255, 0.6)',
     marginBottom: 16,
     ...Platform.select({
       web: {
-        boxShadow: '6px 6px 12px #dbdbdb, -6px -6px 12px #ffffff',
+        boxShadow: theme.isDark ? 'none' : '6px 6px 12px #dbdbdb, -6px -6px 12px #ffffff',
       },
       ios: {
-        shadowColor: '#dbdbdb',
+        shadowColor: theme.isDark ? 'transparent' : '#dbdbdb',
         shadowOffset: { width: 4, height: 4 },
         shadowOpacity: 0.8,
         shadowRadius: 6,
@@ -317,14 +363,14 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 30,
     fontWeight: '800',
-    color: '#1f2937',
+    color: theme.text,
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
-    color: '#4b5563',
+    color: theme.textMuted,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -352,12 +398,13 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
     fontWeight: '600',
-    color: '#4b5563',
+    color: theme.textMuted,
     paddingHorizontal: 4,
     marginBottom: 6,
+    textAlign: isRtl ? 'right' : 'left',
   },
   passwordHeader: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -365,22 +412,22 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: theme.primary,
   },
   inputWrapper: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.inputBg,
     borderRadius: 12,
     height: 52,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: theme.isDark ? theme.inputBorder : 'transparent',
     ...Platform.select({
       web: {
-        boxShadow: 'inset 2px 2px 5px #d1d1d1, inset -2px -2px 5px #ffffff',
+        boxShadow: theme.shadowInset,
       },
       ios: {
-        shadowColor: '#d1d1d1',
+        shadowColor: theme.shadowColor,
         shadowOffset: { width: 2, height: 2 },
         shadowOpacity: 0.5,
         shadowRadius: 3,
@@ -388,10 +435,12 @@ const styles = StyleSheet.create({
     }),
   },
   inputWrapperFocused: {
-    borderColor: '#6366f1',
+    borderColor: theme.primary,
     ...Platform.select({
       web: {
-        boxShadow: 'inset 2px 2px 5px #d1d1d1, inset -2px -2px 5px #ffffff, 0 0 0 2px rgba(99, 102, 241, 0.2)',
+        boxShadow: theme.isDark 
+          ? 'inset 2px 2px 5px rgba(0,0,0,0.3), 0 0 0 2px rgba(99, 102, 241, 0.2)' 
+          : 'inset 2px 2px 5px #d1d1d1, inset -2px -2px 5px #ffffff, 0 0 0 2px rgba(99, 102, 241, 0.2)',
       },
     }),
   },
@@ -399,18 +448,20 @@ const styles = StyleSheet.create({
     borderColor: '#ef4444',
   },
   inputIcon: {
-    paddingLeft: 16,
+    paddingLeft: isRtl ? 0 : 16,
+    paddingRight: isRtl ? 16 : 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
   input: {
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    color: '#1f2937',
+    color: theme.inputText,
     fontSize: 15,
     height: '100%',
-    paddingLeft: 12,
-    paddingRight: 16,
+    paddingLeft: isRtl ? 16 : 12,
+    paddingRight: isRtl ? 12 : 16,
+    textAlign: isRtl ? 'right' : 'left',
     ...Platform.select({
       web: {
         outlineWidth: 0,
@@ -422,10 +473,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     marginTop: 6,
-    paddingLeft: 4,
+    paddingLeft: isRtl ? 0 : 4,
+    paddingRight: isRtl ? 4 : 0,
+    textAlign: isRtl ? 'right' : 'left',
   },
   submitButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     borderRadius: 12,
     height: 52,
     alignItems: 'center',
@@ -433,10 +486,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     ...Platform.select({
       web: {
-        boxShadow: '4px 4px 10px rgba(99, 102, 241, 0.3), -4px -4px 10px rgba(255, 255, 255, 0.8)',
+        boxShadow: theme.isDark ? 'none' : '4px 4px 10px rgba(99, 102, 241, 0.3), -4px -4px 10px rgba(255, 255, 255, 0.8)',
       },
       ios: {
-        shadowColor: '#6366f1',
+        shadowColor: theme.primary,
         shadowOffset: { width: 4, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 6,
@@ -447,7 +500,7 @@ const styles = StyleSheet.create({
     }),
   },
   submitButtonVerifying: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: theme.primaryHover,
     ...Platform.select({
       web: {
         boxShadow: 'inset 4px 4px 8px rgba(0, 0, 0, 0.1)',
@@ -455,7 +508,7 @@ const styles = StyleSheet.create({
     }),
   },
   submitButtonSuccess: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.accent,
     ...Platform.select({
       web: {
         boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.1)',
@@ -488,39 +541,39 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: 'rgba(209, 213, 219, 0.3)',
+    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(209, 213, 219, 0.3)',
   },
   dividerText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.isDark ? theme.cardBg : theme.bgAlt,
     paddingHorizontal: 16,
     fontSize: 12,
     fontWeight: '600',
-    color: '#4b5563',
+    color: theme.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1,
     zIndex: 1,
   },
   socialContainer: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     gap: 16,
   },
   socialButton: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.isDark ? theme.cardBg : theme.bgAlt,
     borderRadius: 12,
     height: 52,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: theme.cardBorder,
     ...Platform.select({
       web: {
-        boxShadow: '8px 8px 16px #d1d1d1, -8px -8px 16px #ffffff',
+        boxShadow: theme.shadowBox,
       },
       ios: {
-        shadowColor: '#d1d1d1',
+        shadowColor: theme.shadowColor,
         shadowOffset: { width: 4, height: 4 },
         shadowOpacity: 0.6,
         shadowRadius: 6,
@@ -533,35 +586,37 @@ const styles = StyleSheet.create({
   socialIconGoogle: {
     width: 16,
     height: 16,
-    marginRight: 8,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
   },
   socialIconGithub: {
-    marginRight: 8,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
   },
   socialButtonText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: theme.text,
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     justifyContent: 'center',
     marginTop: 40,
   },
   footerText: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    color: '#4b5563',
+    color: theme.textMuted,
     fontSize: 14,
   },
   createAccountLink: {
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
-    color: '#6366f1',
+    color: theme.primary,
     fontSize: 14,
     fontWeight: '700',
   },
   systemFooter: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     justifyContent: 'space-between',
     marginTop: 24,
     paddingHorizontal: 16,
@@ -570,12 +625,13 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     fontSize: 12,
     fontWeight: '500',
-    color: 'rgba(75, 85, 99, 0.6)',
+    color: theme.textLight,
   },
   systemFooterLinks: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
   },
   systemLink: {
     // We can add text decoration or transitions on web if needed
   },
 });
+

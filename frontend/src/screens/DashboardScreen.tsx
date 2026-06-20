@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { apiService, User } from '../services/api';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+
 
 interface DashboardScreenProps {
   onLogout: () => void;
@@ -32,7 +35,7 @@ interface ChatMessage {
 }
 
 // Custom typing animation dot component
-const TypingDot = ({ delay }: { delay: number }) => {
+const TypingDot = ({ delay, styles }: { delay: number; styles: any }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -88,8 +91,35 @@ const LANGUAGES = [
 ];
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) => {
+  const { theme, isDark, themePreference, setThemePreference } = useTheme();
+  const { language, setLanguage, t, isRtl } = useLanguage();
+  const styles = createStyles(theme, isRtl);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+
+  const getCountryName = (code: string) => {
+    switch (code) {
+      case 'auto': return t('auto');
+      case 'United States': return t('usa');
+      case 'United Kingdom': return t('uk');
+      case 'Saudi Arabia': return t('saudi_arabia');
+      case 'Germany': return t('germany');
+      case 'France': return t('france');
+      default: return code;
+    }
+  };
+
+  const getLanguageName = (code: string) => {
+    switch (code) {
+      case 'auto': return t('auto');
+      case 'English': return t('english');
+      case 'Arabic': return t('arabic');
+      case 'Spanish': return t('spanish');
+      case 'French': return t('french');
+      case 'German': return t('german');
+      default: return code;
+    }
+  };
 
   // App States
   const [user, setUser] = useState<User | null>(null);
@@ -336,7 +366,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
     <View style={styles.sidebarInner}>
       {/* Brand logo */}
       <View style={styles.sidebarBrandContainer}>
-        <Text style={styles.sidebarBrandText}>LexisAI</Text>
+        <Text style={styles.sidebarBrandText}>{t('lexisai')}</Text>
       </View>
 
       {/* New Consultation button */}
@@ -346,17 +376,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
         activeOpacity={0.9}
       >
         <MaterialIcons name="add" size={18} color="#ffffff" style={styles.newConsultationIcon} />
-        <Text style={styles.newConsultationBtnText}>New Consultation</Text>
+        <Text style={styles.newConsultationBtnText}>{t('new_consultation')}</Text>
       </TouchableOpacity>
 
       {/* Nav Link Section */}
       <ScrollView style={styles.sidebarNav} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sidebarNavHeader}>Recent History</Text>
+        <Text style={styles.sidebarNavHeader}>{t('recent_history')}</Text>
 
         {isLoadingSessions ? (
           <ActivityIndicator size="small" color="#6366f1" style={{ marginVertical: 16 }} />
         ) : sessionsList.length === 0 ? (
-          <Text style={styles.emptySessionsText}>No recent chats</Text>
+          <Text style={styles.emptySessionsText}>{t('no_recent_chats')}</Text>
         ) : (
           sessionsList.map((session) => (
             <View key={session.id} style={styles.sidebarNavItemContainer}>
@@ -364,7 +394,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                 style={[
                   styles.sidebarNavItem,
                   activeSessionId === session.id && styles.sidebarNavItemActive,
-                  { flex: 1, marginRight: 4 }
+                  { flex: 1, marginRight: isRtl ? 0 : 4, marginLeft: isRtl ? 4 : 0 }
                 ]}
                 onPress={() => handleSelectSession(session.id)}
               >
@@ -401,12 +431,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
       <View style={styles.sidebarFooter}>
         <TouchableOpacity style={styles.sidebarFooterItem}>
           <MaterialIcons name="help-outline" size={16} color="#64748b" />
-          <Text style={styles.sidebarFooterItemText}>Help Center</Text>
+          <Text style={styles.sidebarFooterItemText}>{t('help_center')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sidebarFooterItem} onPress={() => setIsSettingsOpen(true)}>
           <MaterialIcons name="settings" size={16} color="#64748b" />
-          <Text style={styles.sidebarFooterItemText}>Settings</Text>
+          <Text style={styles.sidebarFooterItemText}>{t('settings')}</Text>
         </TouchableOpacity>
 
         {/* User Card */}
@@ -426,7 +456,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
 
         {/* Logout button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-          <Text style={styles.logoutButtonText}>Sign Out</Text>
+          <Text style={styles.logoutButtonText}>{t('sign_out')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -435,18 +465,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
   const isWelcomeState = messages.length === 1 && messages[0].id === 'welcome-msg';
 
   const renderWelcomeScreen = () => {
-    const welcomeMsg = messages[0];
     return (
       <View style={styles.welcomeContainer}>
         <View style={styles.welcomeLogoContainer}>
           <MaterialIcons name="gavel" size={32} color="#ffffff" />
         </View>
-        <Text style={styles.welcomeTitle}>How can I help you today?</Text>
+        <Text style={styles.welcomeTitle}>{t('how_can_help')}</Text>
 
         {/* Country & Language Selectors inside the Welcome Screen */}
         <View style={styles.welcomeSelectorCard}>
           <View style={styles.welcomeSelectorRow}>
-            <Text style={styles.welcomeSelectorLabel}>Jurisdiction</Text>
+            <Text style={styles.welcomeSelectorLabel}>{t('jurisdiction')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
               {COUNTRIES.map((c) => (
                 <TouchableOpacity
@@ -462,7 +491,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                     styles.selectorChipText,
                     selectedCountry === c.code && styles.selectorChipTextActive
                   ]}>
-                    {c.flag} {c.name}
+                    {c.flag} {getCountryName(c.code)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -470,7 +499,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
           </View>
 
           <View style={styles.welcomeSelectorRow}>
-            <Text style={styles.welcomeSelectorLabel}>Language</Text>
+            <Text style={styles.welcomeSelectorLabel}>{t('language')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
               {LANGUAGES.map((l) => (
                 <TouchableOpacity
@@ -486,7 +515,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                     styles.selectorChipText,
                     selectedLanguage === l.code && styles.selectorChipTextActive
                   ]}>
-                    {l.flag} {l.name}
+                    {l.flag} {getLanguageName(l.code)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -496,7 +525,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
 
         {/* 2x2 suggested starts cards */}
         <View style={styles.welcomeSuggestionsContainer}>
-          {welcomeMsg.bulletPoints?.map((pt, idx) => (
+          {[
+            t('suggested_start_1'),
+            t('suggested_start_2'),
+            t('suggested_start_3'),
+          ].map((pt, idx) => (
             <TouchableOpacity
               key={idx}
               style={styles.welcomeSuggestionCard}
@@ -504,7 +537,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
               activeOpacity={0.8}
             >
               <Text style={styles.welcomeSuggestionText}>{pt}</Text>
-              <MaterialIcons name="arrow-forward" size={16} color="#6366f1" />
+              <MaterialIcons name={isRtl ? "arrow-back" : "arrow-forward"} size={16} color="#6366f1" />
             </TouchableOpacity>
           ))}
         </View>
@@ -557,8 +590,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                 </TouchableOpacity>
               )}
               <View style={styles.headerTitleContainer}>
-                <Text style={styles.headerTitle}>LexisAI</Text>
-                <MaterialIcons name="keyboard-arrow-down" size={18} color="#64748b" style={{ marginLeft: 4 }} />
+                <Text style={styles.headerTitle}>{t('lexisai')}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={18} color="#64748b" style={{ marginLeft: isRtl ? 0 : 4, marginRight: isRtl ? 4 : 0 }} />
               </View>
             </View>
 
@@ -567,9 +600,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
               <View style={styles.headerStatusBadge}>
                 <Text style={styles.headerStatusBadgeText}>
                   {COUNTRIES.find((c) => c.code === selectedCountry)?.flag || '🌐'}{' '}
-                  {COUNTRIES.find((c) => c.code === selectedCountry)?.name || 'Auto'}
+                  {getCountryName(selectedCountry)}
                   {' • '}
-                  {LANGUAGES.find((l) => l.code === selectedLanguage)?.name || 'Auto'}
+                  {getLanguageName(selectedLanguage)}
                 </Text>
               </View>
 
@@ -580,12 +613,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                   color="#6366f1"
                   style={styles.accuracyBadgeIcon}
                 />
-                <Text style={styles.accuracyBadgeText}>98% Accuracy</Text>
+                <Text style={styles.accuracyBadgeText}>{t('accuracy_pct')}</Text>
               </View>
 
               <TouchableOpacity
                 style={styles.shareButton}
-                onPress={() => Alert.alert('Share', 'Link copied to clipboard!')}
+                onPress={() => Alert.alert(t('share'), t('link_copied'))}
                 activeOpacity={0.7}
               >
                 <MaterialIcons name="share" size={20} color="#64748b" />
@@ -660,10 +693,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                           </View>
                         ) : msg.type === 'suggested_starts' ? (
                           <View style={styles.suggestedStartsBubble}>
-                            <Text style={styles.standardMessageText}>{msg.text}</Text>
+                            <Text style={styles.standardMessageText}>
+                              {t(msg.text.includes('empty') ? 'empty_session' : 'hello_counselor')}
+                            </Text>
                             <View style={styles.suggestedStartsContainer}>
-                              <Text style={styles.suggestedStartsHeader}>Suggested starting points:</Text>
-                              {msg.bulletPoints?.map((pt, idx) => (
+                              <Text style={styles.suggestedStartsHeader}>{t('suggested_starts_header')}</Text>
+                              {[
+                                t('suggested_start_1'),
+                                t('suggested_start_2'),
+                                t('suggested_start_3'),
+                              ].map((pt, idx) => (
                                 <View key={idx} style={styles.suggestedStartBulletRow}>
                                   <View style={styles.bulletDot} />
                                   <Text style={styles.suggestedStartBulletText}>{pt}</Text>
@@ -702,9 +741,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                     <MaterialIcons name="smart-toy" size={16} color="#ffffff" />
                   </View>
                   <View style={styles.typingBubbleContainer}>
-                    <TypingDot delay={0} />
-                    <TypingDot delay={200} />
-                    <TypingDot delay={400} />
+                    <TypingDot delay={0} styles={styles} />
+                    <TypingDot delay={200} styles={styles} />
+                    <TypingDot delay={400} styles={styles} />
                   </View>
                 </View>
               )}
@@ -727,7 +766,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
 
                   <TextInput
                     style={[styles.chatTextInput, { height: Math.min(120, Math.max(36, inputHeight)) }]}
-                    placeholder="Message LexisAI..."
+                    placeholder={t('message_placeholder')}
                     placeholderTextColor="rgba(100, 116, 139, 0.5)"
                     value={inputValue}
                     onChangeText={setInputValue}
@@ -752,7 +791,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                     activeOpacity={0.8}
                   >
                     <MaterialIcons
-                      name="arrow-upward"
+                      name={isRtl ? "arrow-back" : "arrow-upward"}
                       size={20}
                       color={inputValue.trim() ? '#ffffff' : 'rgba(100, 116, 139, 0.4)'}
                     />
@@ -762,7 +801,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                 {/* Sub info bar */}
                 <View style={styles.inputCardFooter}>
                   <Text style={styles.footerAccuracyNotice}>
-                    LexisAI can make mistakes. Verify critical facts.
+                    {t('accuracy_notice')}
                   </Text>
                   <View style={styles.modelTag}>
                     <MaterialIcons
@@ -771,7 +810,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                       color="#6366f1"
                       style={styles.modelTagIcon}
                     />
-                    <Text style={styles.modelTagText}>Silk GPT-4 Legal</Text>
+                    <Text style={styles.modelTagText}>{t('model_tag')}</Text>
                   </View>
                 </View>
               </View>
@@ -789,37 +828,49 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
             />
             <View style={styles.settingsDrawerPane}>
               <View style={styles.settingsHeader}>
-                <Text style={styles.settingsTitle}>Assistant Settings</Text>
+                <Text style={styles.settingsTitle}>{t('assistant_settings')}</Text>
                 <TouchableOpacity
                   style={styles.closeSettingsBtn}
                   onPress={() => setIsSettingsOpen(false)}
                   activeOpacity={0.8}
                 >
-                  <MaterialIcons name="close" size={20} color="#1e293b" />
+                  <MaterialIcons name="close" size={20} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.settingsContent}>
                 <View style={styles.themeSelectorGroup}>
-                  <Text style={styles.themeSelectorLabel}>Theme Preference</Text>
+                  <Text style={styles.themeSelectorLabel}>{t('theme_preference')}</Text>
                   <View style={styles.themeRow}>
-                    <TouchableOpacity style={styles.themeBtnActive} activeOpacity={0.9}>
-                      <Text style={styles.themeBtnTextActive}>Silk Light</Text>
+                    <TouchableOpacity
+                      style={themePreference === 'light' ? styles.themeBtnActive : styles.themeBtnDisabled}
+                      onPress={() => setThemePreference('light')}
+                      activeOpacity={0.9}
+                    >
+                      <Text style={themePreference === 'light' ? styles.themeBtnTextActive : styles.themeBtnTextDisabled}>{t('light_mode')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.themeBtnDisabled}
-                      onPress={() => Alert.alert('Settings', 'Silk Dark mode is a premium account exclusive feature.')}
+                      style={themePreference === 'dark' ? styles.themeBtnActive : styles.themeBtnDisabled}
+                      onPress={() => setThemePreference('dark')}
                       activeOpacity={0.9}
                     >
-                      <Text style={styles.themeBtnTextDisabled}>Silk Dark</Text>
+                      <Text style={themePreference === 'dark' ? styles.themeBtnTextActive : styles.themeBtnTextDisabled}>{t('dark_mode')}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={themePreference === 'system' ? styles.themeBtnActive : styles.themeBtnDisabled}
+                      onPress={() => setThemePreference('system')}
+                      activeOpacity={0.9}
+                    >
+                      <Text style={themePreference === 'system' ? styles.themeBtnTextActive : styles.themeBtnTextDisabled}>{t('system_default')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 {/* Jurisdiction configuration inside settings panel */}
                 <View style={[styles.themeSelectorGroup, { marginTop: 16 }]}>
-                  <Text style={styles.themeSelectorLabel}>Jurisdiction</Text>
+                  <Text style={styles.themeSelectorLabel}>{t('jurisdiction')}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
                     {COUNTRIES.map((c) => (
                       <TouchableOpacity
@@ -835,7 +886,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                           styles.selectorChipText,
                           selectedCountry === c.code && styles.selectorChipTextActive
                         ]}>
-                          {c.flag} {c.name}
+                          {c.flag} {getCountryName(c.code)}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -844,7 +895,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
 
                 {/* Language configuration inside settings panel */}
                 <View style={[styles.themeSelectorGroup, { marginTop: 16 }]}>
-                  <Text style={styles.themeSelectorLabel}>Language</Text>
+                  <Text style={styles.themeSelectorLabel}>{t('language')}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
                     {LANGUAGES.map((l) => (
                       <TouchableOpacity
@@ -860,7 +911,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                           styles.selectorChipText,
                           selectedLanguage === l.code && styles.selectorChipTextActive
                         ]}>
-                          {l.flag} {l.name}
+                          {l.flag} {getLanguageName(l.code)}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -875,16 +926,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeColors, isRtl: boolean) => StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.bg,
   },
   appContainer: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     height: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.bg,
     position: 'relative',
   },
 
@@ -892,9 +943,11 @@ const styles = StyleSheet.create({
   desktopSidebar: {
     width: 288,
     height: '100%',
-    backgroundColor: '#f9fafb',
-    borderRightWidth: 1,
-    borderRightColor: '#e5e7eb',
+    backgroundColor: theme.sidebarBg,
+    borderRightWidth: isRtl ? 0 : 1,
+    borderRightColor: theme.sidebarBorder,
+    borderLeftWidth: isRtl ? 1 : 0,
+    borderLeftColor: theme.sidebarBorder,
   },
 
   // Mobile Drawer Sidebar Overlay
@@ -905,8 +958,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
   },
   overlayBackdropTap: {
     position: 'absolute',
@@ -918,10 +971,10 @@ const styles = StyleSheet.create({
   mobileSidebarDrawer: {
     width: 288,
     height: '100%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.sidebarBg,
     elevation: 16,
-    shadowColor: '#1e293b',
-    shadowOffset: { width: 4, height: 0 },
+    shadowColor: theme.shadowColor,
+    shadowOffset: { width: isRtl ? -4 : 4, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     zIndex: 101,
@@ -940,13 +993,14 @@ const styles = StyleSheet.create({
   sidebarBrandText: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#6366f1',
+    color: theme.primary,
     letterSpacing: -0.5,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   newConsultationBtn: {
-    backgroundColor: '#6366f1',
-    flexDirection: 'row',
+    backgroundColor: theme.primary,
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
@@ -955,7 +1009,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   newConsultationIcon: {
-    marginRight: 8,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
   },
   newConsultationBtnText: {
     color: '#ffffff',
@@ -969,22 +1024,23 @@ const styles = StyleSheet.create({
   sidebarNavHeader: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9ca3af',
+    color: theme.textLight,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
     paddingHorizontal: 8,
     opacity: 0.8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   sidebarNavItemContainer: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
   sidebarNavItem: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -992,18 +1048,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sidebarNavItemActive: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.sidebarItemBgActive,
   },
   sidebarNavItemText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: theme.sidebarText,
     fontWeight: '500',
-    marginLeft: 10,
+    marginLeft: isRtl ? 0 : 10,
+    marginRight: isRtl ? 10 : 0,
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   sidebarNavItemTextActive: {
-    color: '#111827',
+    color: theme.sidebarTextActive,
     fontWeight: '600',
   },
   deleteSessionBtn: {
@@ -1016,18 +1074,18 @@ const styles = StyleSheet.create({
   },
   emptySessionsText: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: theme.textLight,
     textAlign: 'center',
     marginVertical: 16,
     fontStyle: 'italic',
   },
   sidebarFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: theme.sidebarBorder,
     paddingTop: 12,
   },
   sidebarFooterItem: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -1037,54 +1095,60 @@ const styles = StyleSheet.create({
   sidebarFooterItemText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4b5563',
-    marginLeft: 10,
+    color: theme.sidebarText,
+    marginLeft: isRtl ? 0 : 10,
+    marginRight: isRtl ? 10 : 0,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   userProfileCard: {
     marginTop: 12,
     marginBottom: 8,
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.sidebarItemBgActive,
     borderRadius: 12,
     padding: 12,
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.sidebarBorder,
   },
   userAvatarContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: theme.accentBg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: isRtl ? 0 : 10,
+    marginLeft: isRtl ? 10 : 0,
   },
   userAvatarText: {
-    color: '#6366f1',
+    color: theme.primary,
     fontWeight: '600',
     fontSize: 13,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   userInfoTextContainer: {
     flex: 1,
+    alignItems: isRtl ? 'flex-end' : 'flex-start',
   },
   userProfileName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1e293b',
+    color: theme.text,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   userProfileAccount: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#9ca3af',
+    color: theme.textLight,
     marginTop: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   logoutButton: {
-    backgroundColor: 'rgba(220, 38, 38, 0.05)',
+    backgroundColor: theme.isDark ? 'rgba(220, 38, 38, 0.1)' : 'rgba(220, 38, 38, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(220, 38, 38, 0.1)',
     paddingVertical: 8,
@@ -1103,7 +1167,7 @@ const styles = StyleSheet.create({
   mainContentPane: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.bg,
     height: '100%',
   },
 
@@ -1111,19 +1175,19 @@ const styles = StyleSheet.create({
   headerBar: {
     height: 56,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    flexDirection: 'row',
+    borderBottomColor: theme.divider,
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
   },
   headerLeft: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
   },
   headerTitleContainer: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
   },
   hamburgerBtn: {
@@ -1132,50 +1196,54 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
-    backgroundColor: '#f3f4f6',
+    marginRight: isRtl ? 0 : 10,
+    marginLeft: isRtl ? 10 : 0,
+    backgroundColor: theme.bgAlt,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1e293b',
+    color: theme.text,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   headerRight: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
   },
   headerStatusBadge: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.bgAlt,
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 12,
-    marginRight: 8,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
   },
   headerStatusBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#4b5563',
+    color: theme.textMuted,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   accuracyBadge: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    backgroundColor: theme.accentBg,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.15)',
+    borderColor: theme.isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.15)',
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 12,
-    marginRight: 8,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
   },
   accuracyBadgeIcon: {
-    marginRight: 4,
+    marginRight: isRtl ? 0 : 4,
+    marginLeft: isRtl ? 4 : 0,
   },
   accuracyBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   shareButton: {
@@ -1184,9 +1252,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
   },
 
   // Messages Scroll Area
@@ -1218,7 +1286,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -1226,16 +1294,16 @@ const styles = StyleSheet.create({
   welcomeTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1e293b',
+    color: theme.text,
     textAlign: 'center',
     marginBottom: 24,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   welcomeSelectorCard: {
     width: '100%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.bgAlt,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -1246,43 +1314,46 @@ const styles = StyleSheet.create({
   welcomeSelectorLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9ca3af',
+    color: theme.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   welcomeSuggestionsContainer: {
     width: '100%',
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: Platform.OS === 'web' ? (isRtl ? 'row-reverse' : 'row') : 'column',
     flexWrap: 'wrap',
     gap: 12,
   },
   welcomeSuggestionCard: {
     flex: 1,
     minWidth: 280,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
     borderRadius: 12,
     padding: 16,
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   welcomeSuggestionText: {
     fontSize: 13,
-    color: '#4b5563',
+    color: theme.textMuted,
     fontWeight: '500',
     flex: 1,
-    marginRight: 12,
+    marginRight: isRtl ? 0 : 12,
+    marginLeft: isRtl ? 12 : 0,
     lineHeight: 18,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
 
   // Message Bubbles Layout
   messageWrapper: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     marginBottom: 24,
     width: '100%',
   },
@@ -1298,10 +1369,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: isRtl ? 0 : 12,
+    marginLeft: isRtl ? 12 : 0,
     marginTop: 2,
   },
   userAvatarBubble: {
@@ -1331,17 +1403,18 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   bubbleStyleUser: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.isDark ? '#1e293b' : '#f3f4f6',
     borderRadius: 18,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    alignSelf: 'flex-end',
+    alignSelf: isRtl ? 'flex-start' : 'flex-end',
   },
   standardMessageText: {
     fontSize: 15,
-    color: '#1e293b',
+    color: theme.text,
     lineHeight: 22,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   standardMessageTextUser: {
     fontWeight: '400',
@@ -1352,26 +1425,27 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: theme.divider,
+    backgroundColor: theme.cardBg,
   },
   suggestedStartsContainer: {
     marginTop: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.bgAlt,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
   },
   suggestedStartsHeader: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
     marginBottom: 8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   suggestedStartBulletRow: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     marginBottom: 6,
   },
@@ -1380,13 +1454,15 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: 'rgba(99, 102, 241, 0.4)',
-    marginRight: 8,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
   },
   suggestedStartBulletText: {
     fontSize: 13,
-    color: '#4b5563',
+    color: theme.textMuted,
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
 
   // California Law Rich Card Layout
@@ -1394,26 +1470,28 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: theme.divider,
+    backgroundColor: theme.cardBg,
     marginTop: 8,
   },
   californiaLawTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
     marginBottom: 8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   californiaLawBodyText: {
     fontSize: 14,
-    color: '#374151',
+    color: theme.textMuted,
     lineHeight: 20,
     marginBottom: 16,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   lawGridContainer: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: Platform.OS === 'web' ? (isRtl ? 'row-reverse' : 'row') : 'column',
     gap: 12,
     marginBottom: 16,
   },
@@ -1421,46 +1499,50 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.bgAlt,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
   },
   lawGridCardHeader: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   lawGridCardText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: theme.textLight,
     lineHeight: 16,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   numberedListContainer: {
     marginTop: 8,
   },
   numberedListItem: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'flex-start',
     marginBottom: 8,
   },
   numberedListNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
-    marginRight: 8,
+    color: theme.primary,
+    marginRight: isRtl ? 0 : 8,
+    marginLeft: isRtl ? 8 : 0,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   numberedListBody: {
     fontSize: 14,
-    color: '#374151',
+    color: theme.textMuted,
     lineHeight: 20,
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   boldText: {
     fontWeight: '700',
@@ -1477,14 +1559,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 16,
-    backgroundColor: '#f3f4f6',
-    alignSelf: 'flex-start',
+    backgroundColor: theme.isDark ? '#1e293b' : '#f3f4f6',
+    alignSelf: isRtl ? 'flex-end' : 'flex-start',
   },
   typingDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
     marginHorizontal: 3,
   },
 
@@ -1492,9 +1574,9 @@ const styles = StyleSheet.create({
   footerContainer: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: theme.divider,
     alignItems: 'center',
   },
   suggestionChipsScroll: {
@@ -1516,15 +1598,15 @@ const styles = StyleSheet.create({
 
   // Chat Input Box
   inputCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
     padding: 6,
     width: '100%',
   },
   inputCardRow: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 6,
   },
@@ -1541,11 +1623,12 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 8,
     fontSize: 15,
-    color: '#1e293b',
+    color: theme.inputText,
     paddingVertical: 8,
     textAlignVertical: 'top',
     minHeight: 36,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
     ...Platform.select({
       web: {
         outlineStyle: 'none' as any,
@@ -1561,13 +1644,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sendButtonActive: {
-    backgroundColor: '#6366f1',
+    backgroundColor: theme.primary,
   },
   sendButtonInactive: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.bgAlt,
   },
   inputCardFooter: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
@@ -1577,24 +1660,26 @@ const styles = StyleSheet.create({
   footerAccuracyNotice: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#9ca3af',
+    color: theme.textLight,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   modelTag: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.bgAlt,
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 10,
   },
   modelTagIcon: {
-    marginRight: 2,
+    marginRight: isRtl ? 0 : 2,
+    marginLeft: isRtl ? 2 : 0,
   },
   modelTagText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#6366f1',
+    color: theme.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.2,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
@@ -1603,24 +1688,27 @@ const styles = StyleSheet.create({
   // Settings Slide-out panel
   settingsDrawerPane: {
     position: 'absolute',
-    right: 0,
+    right: isRtl ? undefined : 0,
+    left: isRtl ? 0 : undefined,
     top: 0,
     bottom: 0,
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
     padding: 24,
-    borderLeftWidth: 1,
-    borderLeftColor: '#e5e7eb',
+    borderLeftWidth: isRtl ? 0 : 1,
+    borderLeftColor: theme.divider,
+    borderRightWidth: isRtl ? 1 : 0,
+    borderRightColor: theme.divider,
     elevation: 24,
-    shadowColor: '#1e293b',
-    shadowOffset: { width: -4, height: 0 },
+    shadowColor: theme.shadowColor,
+    shadowOffset: { width: isRtl ? 4 : -4, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     zIndex: 102,
   },
   settingsHeader: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 24,
@@ -1628,8 +1716,9 @@ const styles = StyleSheet.create({
   settingsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: theme.text,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   closeSettingsBtn: {
     width: 32,
@@ -1637,55 +1726,56 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.bgAlt,
   },
   settingsContent: {
     flex: 1,
   },
   themeSelectorGroup: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.bgAlt,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
   },
   themeSelectorLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: theme.textLight,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    textAlign: isRtl ? 'right' : 'left',
   },
   themeRow: {
-    flexDirection: 'row',
+    flexDirection: isRtl ? 'row-reverse' : 'row',
     gap: 12,
   },
   themeBtnActive: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#6366f1',
+    borderColor: theme.primary,
   },
   themeBtnTextActive: {
-    color: '#6366f1',
+    color: theme.primary,
     fontWeight: '600',
     fontSize: 13,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   themeBtnDisabled: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : '#f3f4f6',
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
   },
   themeBtnTextDisabled: {
-    color: '#9ca3af',
+    color: theme.textLight,
     fontWeight: '600',
     fontSize: 13,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
@@ -1719,21 +1809,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   selectorChip: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBg,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: theme.divider,
   },
   selectorChipActive: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
   },
   selectorChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4b5563',
+    color: theme.textMuted,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   selectorChipTextActive: {

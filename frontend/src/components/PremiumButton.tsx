@@ -48,11 +48,11 @@ const styles = StyleSheet.create({
     boxShadow: '0 4px 14px 0 rgba(99, 102, 241, 0.4)',
     transitionProperty: 'transform, background-color, box-shadow',
     transitionDuration: '0.2s',
-  },
+  } as any,
   buttonDisabled: {
     backgroundColor: '#475569',
     boxShadow: 'none',
-  },
+  } as any,
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
