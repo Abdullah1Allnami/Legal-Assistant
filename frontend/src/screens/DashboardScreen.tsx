@@ -94,6 +94,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
   // App States
   const [user, setUser] = useState<User | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Country & Language settings
@@ -331,8 +332,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
   const userInitials = user?.email ? user.email.slice(0, 2).toUpperCase() : 'JD';
   const userFullName = user?.email ? user.email.split('@')[0] + ', Esq.' : 'John Doe, Esq.';
   const userAccountType = user?.role === 'admin' ? 'Administrator Console' : 'Premium Account';
-
-  // Renders the left sidebar list of links and profile
   const renderSidebarContent = () => (
     <View style={styles.sidebarInner}>
       {/* Brand logo */}
@@ -346,7 +345,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
         onPress={handleNewConsultation}
         activeOpacity={0.9}
       >
-        <MaterialIcons name="add-box" size={20} color="#ffffff" style={styles.newConsultationIcon} />
+        <MaterialIcons name="add" size={18} color="#ffffff" style={styles.newConsultationIcon} />
         <Text style={styles.newConsultationBtnText}>New Consultation</Text>
       </TouchableOpacity>
 
@@ -371,7 +370,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
               >
                 <MaterialIcons
                   name="chat-bubble-outline"
-                  size={18}
+                  size={16}
                   color={activeSessionId === session.id ? '#6366f1' : '#64748b'}
                 />
                 <Text
@@ -391,28 +390,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                 onPress={() => handleDeleteSession(session.id)}
                 activeOpacity={0.7}
               >
-                <MaterialIcons name="delete-outline" size={16} color="#dc2626" />
+                <MaterialIcons name="delete-outline" size={14} color="#dc2626" />
               </TouchableOpacity>
             </View>
           ))
         )}
-
-        <Text style={[styles.sidebarNavHeader, { marginTop: 24 }]}>Library</Text>
-        <TouchableOpacity style={styles.sidebarNavItem}>
-          <MaterialIcons name="folder" size={20} color="#64748b" />
-          <Text style={styles.sidebarNavItemText}>Documents</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Footer list */}
       <View style={styles.sidebarFooter}>
         <TouchableOpacity style={styles.sidebarFooterItem}>
-          <MaterialIcons name="help-outline" size={20} color="#64748b" />
+          <MaterialIcons name="help-outline" size={16} color="#64748b" />
           <Text style={styles.sidebarFooterItemText}>Help Center</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sidebarFooterItem} onPress={() => setIsSettingsOpen(true)}>
-          <MaterialIcons name="settings" size={20} color="#64748b" />
+          <MaterialIcons name="settings" size={16} color="#64748b" />
           <Text style={styles.sidebarFooterItemText}>Settings</Text>
         </TouchableOpacity>
 
@@ -439,12 +432,91 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
     </View>
   );
 
+  const isWelcomeState = messages.length === 1 && messages[0].id === 'welcome-msg';
+
+  const renderWelcomeScreen = () => {
+    const welcomeMsg = messages[0];
+    return (
+      <View style={styles.welcomeContainer}>
+        <View style={styles.welcomeLogoContainer}>
+          <MaterialIcons name="gavel" size={32} color="#ffffff" />
+        </View>
+        <Text style={styles.welcomeTitle}>How can I help you today?</Text>
+
+        {/* Country & Language Selectors inside the Welcome Screen */}
+        <View style={styles.welcomeSelectorCard}>
+          <View style={styles.welcomeSelectorRow}>
+            <Text style={styles.welcomeSelectorLabel}>Jurisdiction</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
+              {COUNTRIES.map((c) => (
+                <TouchableOpacity
+                  key={c.code}
+                  style={[
+                    styles.selectorChip,
+                    selectedCountry === c.code && styles.selectorChipActive
+                  ]}
+                  onPress={() => setSelectedCountry(c.code)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.selectorChipText,
+                    selectedCountry === c.code && styles.selectorChipTextActive
+                  ]}>
+                    {c.flag} {c.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.welcomeSelectorRow}>
+            <Text style={styles.welcomeSelectorLabel}>Language</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
+              {LANGUAGES.map((l) => (
+                <TouchableOpacity
+                  key={l.code}
+                  style={[
+                    styles.selectorChip,
+                    selectedLanguage === l.code && styles.selectorChipActive
+                  ]}
+                  onPress={() => setSelectedLanguage(l.code)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.selectorChipText,
+                    selectedLanguage === l.code && styles.selectorChipTextActive
+                  ]}>
+                    {l.flag} {l.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* 2x2 suggested starts cards */}
+        <View style={styles.welcomeSuggestionsContainer}>
+          {welcomeMsg.bulletPoints?.map((pt, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={styles.welcomeSuggestionCard}
+              onPress={() => handleSendMessage(pt)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.welcomeSuggestionText}>{pt}</Text>
+              <MaterialIcons name="arrow-forward" size={16} color="#6366f1" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.outerContainer}>
       <View style={styles.appContainer}>
         {/* Persistent Left Sidebar on Desktop */}
-        {isDesktop && <View style={styles.desktopSidebar}>{renderSidebarContent()}</View>}
+        {isDesktop && isDesktopSidebarOpen && <View style={styles.desktopSidebar}>{renderSidebarContent()}</View>}
 
         {/* Slide-out Mobile Left Sidebar Overlay Drawer */}
         {!isDesktop && isSidebarOpen && (
@@ -463,7 +535,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
           {/* Header */}
           <View style={styles.headerBar}>
             <View style={styles.headerLeft}>
-              {!isDesktop && (
+              {isDesktop ? (
+                <TouchableOpacity
+                  style={styles.hamburgerBtn}
+                  onPress={() => setIsDesktopSidebarOpen(prev => !prev)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons
+                    name={isDesktopSidebarOpen ? "menu-open" : "menu"}
+                    size={22}
+                    color="#64748b"
+                  />
+                </TouchableOpacity>
+              ) : (
                 <TouchableOpacity
                   style={styles.hamburgerBtn}
                   onPress={() => setIsSidebarOpen(true)}
@@ -472,10 +556,23 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                   <MaterialIcons name="menu" size={22} color="#64748b" />
                 </TouchableOpacity>
               )}
-              <Text style={styles.headerTitle}>Legal Assistant Chat</Text>
+              <View style={styles.headerTitleContainer}>
+                <Text style={styles.headerTitle}>LexisAI</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={18} color="#64748b" style={{ marginLeft: 4 }} />
+              </View>
             </View>
 
             <View style={styles.headerRight}>
+              {/* Active settings indicators */}
+              <View style={styles.headerStatusBadge}>
+                <Text style={styles.headerStatusBadgeText}>
+                  {COUNTRIES.find((c) => c.code === selectedCountry)?.flag || '🌐'}{' '}
+                  {COUNTRIES.find((c) => c.code === selectedCountry)?.name || 'Auto'}
+                  {' • '}
+                  {LANGUAGES.find((l) => l.code === selectedLanguage)?.name || 'Auto'}
+                </Text>
+              </View>
+
               <View style={styles.accuracyBadge}>
                 <MaterialIcons
                   name="verified"
@@ -496,61 +593,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
             </View>
           </View>
 
-          {/* Country & Language Selectors */}
-          <View style={styles.selectorBar}>
-            <View style={styles.selectorContainer}>
-              <View style={styles.selectorSection}>
-                <Text style={styles.selectorTitleText}>Jurisdiction</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
-                  {COUNTRIES.map((c) => (
-                    <TouchableOpacity
-                      key={c.code}
-                      style={[
-                        styles.selectorChip,
-                        selectedCountry === c.code && styles.selectorChipActive
-                      ]}
-                      onPress={() => setSelectedCountry(c.code)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[
-                        styles.selectorChipText,
-                        selectedCountry === c.code && styles.selectorChipTextActive
-                      ]}>
-                        {c.flag} {c.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              <View style={styles.selectorSectionDivider} />
-
-              <View style={styles.selectorSection}>
-                <Text style={styles.selectorTitleText}>Language</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
-                  {LANGUAGES.map((l) => (
-                    <TouchableOpacity
-                      key={l.code}
-                      style={[
-                        styles.selectorChip,
-                        selectedLanguage === l.code && styles.selectorChipActive
-                      ]}
-                      onPress={() => setSelectedLanguage(l.code)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[
-                        styles.selectorChipText,
-                        selectedLanguage === l.code && styles.selectorChipTextActive
-                      ]}>
-                        {l.flag} {l.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            </View>
-          </View>
-
           {/* Messages Feed */}
           <ScrollView
             ref={scrollViewRef}
@@ -559,113 +601,105 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
             showsVerticalScrollIndicator={true}
           >
             <View style={styles.chatContainerMaxWidth}>
-              {messages.map((msg) => {
-                const isAI = msg.sender === 'ai';
-                return (
-                  <View key={msg.id} style={[styles.messageWrapper, isAI ? styles.msgAI : styles.msgUser]}>
-                    {/* Avatar for AI on Left */}
-                    {isAI && (
-                      <View style={styles.aiAvatarContainer}>
-                        <MaterialIcons name="gavel" size={20} color="#ffffff" />
-                      </View>
-                    )}
+              {isWelcomeState ? (
+                renderWelcomeScreen()
+              ) : (
+                messages.map((msg) => {
+                  const isAI = msg.sender === 'ai';
+                  return (
+                    <View key={msg.id} style={[styles.messageWrapper, isAI ? styles.msgAI : styles.msgUser]}>
+                      {/* Avatar for AI on Left */}
+                      {isAI && (
+                        <View style={styles.aiAvatarContainer}>
+                          <MaterialIcons name="gavel" size={16} color="#ffffff" />
+                        </View>
+                      )}
 
-                    <View style={styles.messageContentBlock}>
-                      {/* Name Label */}
-                      <Text style={[styles.msgSenderLabel, !isAI && styles.msgSenderLabelRight]}>
-                        {isAI ? 'LexisAI Assistant' : 'You'}
-                      </Text>
+                      <View style={styles.messageContentBlock}>
+                        {/* Card or Bubble */}
+                        {msg.type === 'california_law' ? (
+                          <View style={styles.californiaLawCard}>
+                            <Text style={styles.californiaLawTitle}>{msg.title}</Text>
+                            <Text style={styles.californiaLawBodyText}>{msg.text}</Text>
 
-                      {/* Card or Bubble */}
-                      {msg.type === 'california_law' ? (
-                        <View style={styles.californiaLawCard}>
-                          <Text style={styles.californiaLawTitle}>{msg.title}</Text>
-                          <Text style={styles.californiaLawBodyText}>{msg.text}</Text>
+                            {/* Grid layout - 2 columns */}
+                            {msg.gridItems && (
+                              <View style={styles.lawGridContainer}>
+                                {msg.gridItems.map((item, idx) => (
+                                  <View key={idx} style={styles.lawGridCard}>
+                                    <Text style={styles.lawGridCardHeader}>{item.title}</Text>
+                                    <Text style={styles.lawGridCardText}>{item.desc}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
 
-                          {/* Grid layout - 2 columns */}
-                          {msg.gridItems && (
-                            <View style={styles.lawGridContainer}>
-                              {msg.gridItems.map((item, idx) => (
-                                <View key={idx} style={styles.lawGridCard}>
-                                  <Text style={styles.lawGridCardHeader}>{item.title}</Text>
-                                  <Text style={styles.lawGridCardText}>{item.desc}</Text>
+                            {/* Ordered/Bullet list */}
+                            {msg.orderedItems && (
+                              <View style={styles.numberedListContainer}>
+                                {msg.orderedItems.map((item, idx) => {
+                                  const splitPoint = item.indexOf(':');
+                                  const num = `0${idx + 1}.`;
+                                  const boldText =
+                                    splitPoint !== -1 ? item.substring(0, splitPoint + 1) : '';
+                                  const normText =
+                                    splitPoint !== -1 ? item.substring(splitPoint + 1) : item;
+
+                                  return (
+                                    <View key={idx} style={styles.numberedListItem}>
+                                      <Text style={styles.numberedListNumber}>{num}</Text>
+                                      <Text style={styles.numberedListBody}>
+                                        {boldText ? <Text style={styles.boldText}>{boldText}</Text> : null}
+                                        {normText}
+                                      </Text>
+                                    </View>
+                                  );
+                                })}
+                              </View>
+                            )}
+                          </View>
+                        ) : msg.type === 'suggested_starts' ? (
+                          <View style={styles.suggestedStartsBubble}>
+                            <Text style={styles.standardMessageText}>{msg.text}</Text>
+                            <View style={styles.suggestedStartsContainer}>
+                              <Text style={styles.suggestedStartsHeader}>Suggested starting points:</Text>
+                              {msg.bulletPoints?.map((pt, idx) => (
+                                <View key={idx} style={styles.suggestedStartBulletRow}>
+                                  <View style={styles.bulletDot} />
+                                  <Text style={styles.suggestedStartBulletText}>{pt}</Text>
                                 </View>
                               ))}
                             </View>
-                          )}
-
-                          {/* Ordered/Bullet list */}
-                          {msg.orderedItems && (
-                            <View style={styles.numberedListContainer}>
-                              {msg.orderedItems.map((item, idx) => {
-                                const splitPoint = item.indexOf(':');
-                                const num = `0${idx + 1}.`;
-                                const boldText =
-                                  splitPoint !== -1 ? item.substring(0, splitPoint + 1) : '';
-                                const normText =
-                                  splitPoint !== -1 ? item.substring(splitPoint + 1) : item;
-
-                                return (
-                                  <View key={idx} style={styles.numberedListItem}>
-                                    <Text style={styles.numberedListNumber}>{num}</Text>
-                                    <Text style={styles.numberedListBody}>
-                                      {boldText ? <Text style={styles.boldText}>{boldText}</Text> : null}
-                                      {normText}
-                                    </Text>
-                                  </View>
-                                );
-                              })}
-                            </View>
-                          )}
-                        </View>
-                      ) : msg.type === 'suggested_starts' ? (
-                        <View style={styles.suggestedStartsBubble}>
-                          <Text style={styles.standardMessageText}>{msg.text}</Text>
-                          <View style={styles.suggestedStartsContainer}>
-                            <Text style={styles.suggestedStartsHeader}>Suggested starting points:</Text>
-                            {msg.bulletPoints?.map((pt, idx) => (
-                              <View key={idx} style={styles.suggestedStartBulletRow}>
-                                <View style={styles.bulletDot} />
-                                <Text style={styles.suggestedStartBulletText}>{pt}</Text>
-                              </View>
-                            ))}
                           </View>
-                        </View>
-                      ) : (
-                        // Standard Bubble
-                        <View
-                          style={[
-                            styles.standardBubble,
-                            isAI ? styles.bubbleStyleAI : styles.bubbleStyleUser,
-                          ]}
-                        >
-                          <Text
+                        ) : (
+                          // Standard Bubble
+                          <View
                             style={[
-                              styles.standardMessageText,
-                              !isAI && styles.standardMessageTextUser,
+                              styles.standardBubble,
+                              isAI ? styles.bubbleStyleAI : styles.bubbleStyleUser,
                             ]}
                           >
-                            {msg.text}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Avatar for User on Right */}
-                    {!isAI && (
-                      <View style={styles.userAvatarBubble}>
-                        <MaterialIcons name="person" size={20} color="#64748b" />
+                            <Text
+                              style={[
+                                styles.standardMessageText,
+                                !isAI && styles.standardMessageTextUser,
+                              ]}
+                            >
+                              {msg.text}
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </View>
-                );
-              })}
+                    </View>
+                  );
+                })
+              )}
 
               {/* Typing Indicator */}
               {isTyping && (
                 <View style={[styles.messageWrapper, styles.msgAI]}>
-                  <View style={styles.typingAvatarContainer}>
-                    <MaterialIcons name="smart-toy" size={20} color="#64748b" />
+                  <View style={styles.aiAvatarContainer}>
+                    <MaterialIcons name="smart-toy" size={16} color="#ffffff" />
                   </View>
                   <View style={styles.typingBubbleContainer}>
                     <TypingDot delay={0} />
@@ -680,38 +714,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
           {/* Footer & Chat Input Area */}
           <View style={styles.footerContainer}>
             <View style={styles.chatContainerMaxWidth}>
-              {/* Suggestion Chips */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.suggestionChipsScroll}
-                contentContainerStyle={styles.suggestionChipsContent}
-              >
-                <TouchableOpacity
-                  style={styles.suggestionChip}
-                  onPress={() => handleSendMessage('What are my tenant rights?')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.suggestionChipText}>"What are my tenant rights?"</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.suggestionChip}
-                  onPress={() => handleSendMessage('Explain contract breach')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.suggestionChipText}>"Explain contract breach"</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.suggestionChip}
-                  onPress={() => handleSendMessage('How does employment law work?')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.suggestionChipText}>"How does employment law work?"</Text>
-                </TouchableOpacity>
-              </ScrollView>
-
               {/* Input Card Container */}
               <View style={styles.inputCard}>
                 <View style={styles.inputCardRow}>
@@ -720,12 +722,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                     onPress={() => Alert.alert('Attachment', 'Attach files feature triggered.')}
                     activeOpacity={0.8}
                   >
-                    <MaterialIcons name="attach-file" size={22} color="#64748b" />
+                    <MaterialIcons name="attach-file" size={20} color="#64748b" />
                   </TouchableOpacity>
 
                   <TextInput
-                    style={[styles.chatTextInput, { height: Math.min(120, Math.max(48, inputHeight)) }]}
-                    placeholder="Ask your legal question..."
+                    style={[styles.chatTextInput, { height: Math.min(120, Math.max(36, inputHeight)) }]}
+                    placeholder="Message LexisAI..."
                     placeholderTextColor="rgba(100, 116, 139, 0.5)"
                     value={inputValue}
                     onChangeText={setInputValue}
@@ -750,7 +752,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                     activeOpacity={0.8}
                   >
                     <MaterialIcons
-                      name="send"
+                      name="arrow-upward"
                       size={20}
                       color={inputValue.trim() ? '#ffffff' : 'rgba(100, 116, 139, 0.4)'}
                     />
@@ -765,7 +767,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                   <View style={styles.modelTag}>
                     <MaterialIcons
                       name="auto-awesome"
-                      size={12}
+                      size={10}
                       color="#6366f1"
                       style={styles.modelTagIcon}
                     />
@@ -814,6 +816,56 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                {/* Jurisdiction configuration inside settings panel */}
+                <View style={[styles.themeSelectorGroup, { marginTop: 16 }]}>
+                  <Text style={styles.themeSelectorLabel}>Jurisdiction</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
+                    {COUNTRIES.map((c) => (
+                      <TouchableOpacity
+                        key={c.code}
+                        style={[
+                          styles.selectorChip,
+                          selectedCountry === c.code && styles.selectorChipActive
+                        ]}
+                        onPress={() => setSelectedCountry(c.code)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[
+                          styles.selectorChipText,
+                          selectedCountry === c.code && styles.selectorChipTextActive
+                        ]}>
+                          {c.flag} {c.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Language configuration inside settings panel */}
+                <View style={[styles.themeSelectorGroup, { marginTop: 16 }]}>
+                  <Text style={styles.themeSelectorLabel}>Language</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorChipsRow}>
+                    {LANGUAGES.map((l) => (
+                      <TouchableOpacity
+                        key={l.code}
+                        style={[
+                          styles.selectorChip,
+                          selectedLanguage === l.code && styles.selectorChipActive
+                        ]}
+                        onPress={() => setSelectedLanguage(l.code)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[
+                          styles.selectorChipText,
+                          selectedLanguage === l.code && styles.selectorChipTextActive
+                        ]}>
+                          {l.flag} {l.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
               </View>
             </View>
           </View>
@@ -826,13 +878,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#ffffff',
   },
   appContainer: {
     flex: 1,
     flexDirection: 'row',
     height: '100%',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#ffffff',
     position: 'relative',
   },
 
@@ -840,9 +892,9 @@ const styles = StyleSheet.create({
   desktopSidebar: {
     width: 288,
     height: '100%',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#f9fafb',
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.4)',
+    borderRightColor: '#e5e7eb',
   },
 
   // Mobile Drawer Sidebar Overlay
@@ -853,7 +905,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    backgroundColor: 'rgba(30, 41, 59, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     flexDirection: 'row',
   },
   overlayBackdropTap: {
@@ -866,11 +918,11 @@ const styles = StyleSheet.create({
   mobileSidebarDrawer: {
     width: 288,
     height: '100%',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#f9fafb',
     elevation: 16,
     shadowColor: '#1e293b',
     shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     zIndex: 101,
   },
@@ -878,15 +930,15 @@ const styles = StyleSheet.create({
   // Sidebar Inner Layout
   sidebarInner: {
     flex: 1,
-    padding: 24,
+    padding: 20,
     flexDirection: 'column',
   },
   sidebarBrandContainer: {
-    marginBottom: 32,
+    marginBottom: 24,
     paddingHorizontal: 8,
   },
   sidebarBrandText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
     color: '#6366f1',
     letterSpacing: -0.5,
@@ -897,24 +949,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-    ...Platform.select({
-      web: {
-        boxShadow: '6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.8,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    borderRadius: 8,
+    marginBottom: 20,
   },
   newConsultationIcon: {
     marginRight: 8,
@@ -922,7 +960,7 @@ const styles = StyleSheet.create({
   newConsultationBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   sidebarNav: {
@@ -930,151 +968,134 @@ const styles = StyleSheet.create({
   },
   sidebarNavHeader: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#64748b',
+    fontWeight: '700',
+    color: '#9ca3af',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 12,
+    letterSpacing: 1,
+    marginBottom: 8,
     paddingHorizontal: 8,
-    opacity: 0.6,
+    opacity: 0.8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+  },
+  sidebarNavItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   sidebarNavItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   sidebarNavItemActive: {
-    backgroundColor: '#f0f2f5',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    backgroundColor: '#f3f4f6',
   },
   sidebarNavItemText: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#4b5563',
     fontWeight: '500',
-    marginLeft: 12,
+    marginLeft: 10,
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   sidebarNavItemTextActive: {
-    color: '#6366f1',
-    fontWeight: '700',
+    color: '#111827',
+    fontWeight: '600',
+  },
+  deleteSessionBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.6,
+  },
+  emptySessionsText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginVertical: 16,
+    fontStyle: 'italic',
   },
   sidebarFooter: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.4)',
-    paddingTop: 16,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 12,
   },
   sidebarFooterItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     marginBottom: 4,
   },
   sidebarFooterItemText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748b',
-    marginLeft: 12,
+    color: '#4b5563',
+    marginLeft: 10,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   userProfileCard: {
-    marginTop: 16,
-    marginBottom: 12,
-    backgroundColor: '#f0f2f5',
-    borderRadius: 16,
-    padding: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    ...Platform.select({
-      web: {
-        boxShadow: '8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.8,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderColor: '#e5e7eb',
   },
   userAvatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#e0e7ff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    ...Platform.select({
-      web: {
-        boxShadow: '2px 2px 4px #d1d9e6, -2px -2px 4px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    marginRight: 10,
   },
   userAvatarText: {
     color: '#6366f1',
-    fontWeight: '700',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   userInfoTextContainer: {
     flex: 1,
   },
   userProfileName: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
     color: '#1e293b',
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   userProfileAccount: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
-    color: '#64748b',
-    marginTop: 2,
+    color: '#9ca3af',
+    marginTop: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   logoutButton: {
-    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+    backgroundColor: 'rgba(220, 38, 38, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.2)',
-    paddingVertical: 10,
-    borderRadius: 12,
+    borderColor: 'rgba(220, 38, 38, 0.1)',
+    paddingVertical: 8,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   logoutButtonText: {
     color: '#dc2626',
-    fontWeight: '700',
-    fontSize: 13,
+    fontWeight: '600',
+    fontSize: 12,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
 
@@ -1082,118 +1103,90 @@ const styles = StyleSheet.create({
   mainContentPane: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#ffffff',
     height: '100%',
   },
 
   // Header Bar
   headerBar: {
-    height: 64,
+    height: 56,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.4)',
+    borderBottomColor: '#e5e7eb',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(240, 242, 245, 0.8)',
-    ...Platform.select({
-      web: {
-        position: 'sticky' as any,
-        top: 0,
-        zIndex: 10,
-        backdropFilter: 'blur(10px)',
-      },
-    }),
+    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   hamburgerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    backgroundColor: '#f0f2f5',
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    marginRight: 10,
+    backgroundColor: '#f3f4f6',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1e293b',
-    letterSpacing: -0.2,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  headerStatusBadge: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  headerStatusBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4b5563',
+    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+  },
   accuracyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f2f5',
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginRight: 12,
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 2px 2px 4px #d1d9e6, inset -2px -2px 4px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    borderColor: 'rgba(99, 102, 241, 0.15)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginRight: 8,
   },
   accuracyBadgeIcon: {
-    marginRight: 6,
+    marginRight: 4,
   },
   accuracyBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#6366f1',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   shareButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f0f2f5',
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
 
   // Messages Scroll Area
@@ -1201,20 +1194,96 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatScrollContent: {
-    paddingVertical: 32,
-    paddingHorizontal: 24,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
     alignItems: 'center',
     flexGrow: 1,
   },
   chatContainerMaxWidth: {
     width: '100%',
-    maxWidth: 896,
+    maxWidth: 768,
+  },
+
+  // Welcome / Empty Chat Screen
+  welcomeContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 768,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  welcomeLogoContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 24,
+    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+  },
+  welcomeSelectorCard: {
+    width: '100%',
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  welcomeSelectorRow: {
+    marginBottom: 12,
+  },
+  welcomeSelectorLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+  },
+  welcomeSuggestionsContainer: {
+    width: '100%',
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  welcomeSuggestionCard: {
+    flex: 1,
+    minWidth: 280,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  welcomeSuggestionText: {
+    fontSize: 13,
+    color: '#4b5563',
+    fontWeight: '500',
+    flex: 1,
+    marginRight: 12,
+    lineHeight: 18,
+    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
 
   // Message Bubbles Layout
   messageWrapper: {
     flexDirection: 'row',
-    marginBottom: 36,
+    marginBottom: 24,
     width: '100%',
   },
   msgAI: {
@@ -1226,284 +1295,169 @@ const styles = StyleSheet.create({
 
   // AI Avatar styling
   aiAvatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#6366f1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
-    marginTop: 4,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 8px 16px rgba(99, 102, 241, 0.3)',
-      },
-      ios: {
-        shadowColor: '#6366f1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    marginRight: 12,
+    marginTop: 2,
   },
   userAvatarBubble: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f2f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 16,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    width: 0,
+    height: 0,
   },
-
   messageContentBlock: {
     flex: 1,
-    maxWidth: '80%',
+    maxWidth: '85%',
   },
   msgSenderLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: 8,
-    opacity: 0.7,
-    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    width: 0,
+    height: 0,
   },
   msgSenderLabelRight: {
-    textAlign: 'right',
+    width: 0,
+    height: 0,
   },
 
   // Standard bubble text
   standardBubble: {
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   bubbleStyleAI: {
-    backgroundColor: '#f0f2f5',
-    borderTopLeftRadius: 0,
-    ...Platform.select({
-      web: {
-        boxShadow: '8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.8,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   bubbleStyleUser: {
-    backgroundColor: '#f0f2f5',
-    borderTopRightRadius: 0,
-    ...Platform.select({
-      web: {
-        boxShadow: '8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.8,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: '#f3f4f6',
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-end',
   },
   standardMessageText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#1e293b',
     lineHeight: 22,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   standardMessageTextUser: {
-    fontWeight: '500',
+    fontWeight: '400',
   },
 
-  // Suggested starts layout
+  // Suggested starts layout (fallback or list)
   suggestedStartsBubble: {
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    backgroundColor: '#f0f2f5',
-    borderTopLeftRadius: 0,
-    ...Platform.select({
-      web: {
-        boxShadow: '8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.8,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
   },
   suggestedStartsContainer: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#f0f2f5',
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    borderColor: '#e5e7eb',
   },
   suggestedStartsHeader: {
     fontSize: 13,
     fontWeight: '700',
     color: '#6366f1',
-    marginBottom: 10,
+    marginBottom: 8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   suggestedStartBulletRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   bulletDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: 'rgba(99, 102, 241, 0.4)',
-    marginRight: 10,
+    marginRight: 8,
   },
   suggestedStartBulletText: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#4b5563',
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
 
   // California Law Rich Card Layout
   californiaLawCard: {
-    padding: 24,
-    borderRadius: 24,
+    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    backgroundColor: '#f0f2f5',
-    borderTopLeftRadius: 0,
-    ...Platform.select({
-      web: {
-        boxShadow: '12px 12px 24px #d1d9e6, -12px -12px 24px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 6, height: 6 },
-        shadowOpacity: 0.8,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    marginTop: 8,
   },
   californiaLawTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#6366f1',
-    marginBottom: 12,
-    letterSpacing: -0.2,
+    marginBottom: 8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   californiaLawBodyText: {
     fontSize: 14,
-    color: '#1e293b',
-    lineHeight: 22,
-    marginBottom: 20,
+    color: '#374151',
+    lineHeight: 20,
+    marginBottom: 16,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   lawGridContainer: {
     flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-    gap: 16,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 16,
   },
   lawGridCard: {
     flex: 1,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#f0f2f5',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    borderColor: '#e5e7eb',
   },
   lawGridCardHeader: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#6366f1',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: 4,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   lawGridCardText: {
     fontSize: 12,
-    color: '#64748b',
-    lineHeight: 18,
+    color: '#6b7280',
+    lineHeight: 16,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   numberedListContainer: {
-    marginTop: 12,
+    marginTop: 8,
   },
   numberedListItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   numberedListNumber: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#6366f1',
-    marginRight: 10,
+    marginRight: 8,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   numberedListBody: {
     fontSize: 14,
-    color: '#1e293b',
+    color: '#374151',
     lineHeight: 20,
     flex: 1,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
@@ -1514,43 +1468,17 @@ const styles = StyleSheet.create({
 
   // Typing indicator
   typingAvatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#f0f2f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 2px 2px 4px #d1d9e6, inset -2px -2px 4px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    width: 0,
+    height: 0,
   },
   typingBubbleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    backgroundColor: '#f0f2f5',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
     alignSelf: 'flex-start',
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
   },
   typingDot: {
     width: 6,
@@ -1560,110 +1488,63 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
 
-  // Footer Containers
+  // Footer & Input Containers
   footerContainer: {
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    backgroundColor: '#f0f2f5',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.4)',
+    borderTopColor: '#e5e7eb',
     alignItems: 'center',
   },
   suggestionChipsScroll: {
-    marginBottom: 16,
-    width: '100%',
+    width: 0,
+    height: 0,
   },
   suggestionChipsContent: {
-    paddingBottom: 4,
+    width: 0,
+    height: 0,
   },
   suggestionChip: {
-    backgroundColor: '#f0f2f5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    width: 0,
+    height: 0,
   },
   suggestionChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
-    fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
+    width: 0,
+    height: 0,
   },
 
   // Chat Input Box
   inputCard: {
-    backgroundColor: '#f0f2f5',
-    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    padding: 8,
-    ...Platform.select({
-      web: {
-        boxShadow: '12px 12px 24px #d1d9e6, -12px -12px 24px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 6, height: 6 },
-        shadowOpacity: 0.8,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    borderColor: '#e5e7eb',
+    padding: 6,
+    width: '100%',
   },
   inputCardRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   attachmentButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f0f2f5',
-    marginBottom: 2,
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: 'transparent',
+    marginBottom: 4,
   },
   chatTextInput: {
     flex: 1,
-    marginHorizontal: 12,
-    fontSize: 14,
+    marginHorizontal: 8,
+    fontSize: 15,
     color: '#1e293b',
-    paddingVertical: 12,
+    paddingVertical: 8,
     textAlignVertical: 'top',
+    minHeight: 36,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
     ...Platform.select({
       web: {
@@ -1672,84 +1553,47 @@ const styles = StyleSheet.create({
     }),
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   sendButtonActive: {
     backgroundColor: '#6366f1',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 8px 16px rgba(99, 102, 241, 0.3)',
-      },
-      ios: {
-        shadowColor: '#6366f1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
   },
   sendButtonInactive: {
-    backgroundColor: '#f0f2f5',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 2px 2px 4px #d1d9e6, inset -2px -2px 4px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    backgroundColor: '#f3f4f6',
   },
-
   inputCardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 2,
   },
   footerAccuracyNotice: {
     fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(100, 116, 139, 0.6)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '500',
+    color: '#9ca3af',
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   modelTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f2f5',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 2px 2px 4px #d1d9e6, inset -2px -2px 4px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
   },
   modelTagIcon: {
-    marginRight: 4,
+    marginRight: 2,
   },
   modelTagText: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 9,
+    fontWeight: '700',
     color: '#6366f1',
     textTransform: 'uppercase',
     letterSpacing: 0.2,
@@ -1763,15 +1607,15 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#f0f2f5',
-    padding: 32,
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    padding: 24,
     borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.4)',
+    borderLeftColor: '#e5e7eb',
     elevation: 24,
     shadowColor: '#1e293b',
     shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     zIndex: 102,
   },
@@ -1779,227 +1623,117 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   settingsTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#1e293b',
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   closeSettingsBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f0f2f5',
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: '#f3f4f6',
   },
   settingsContent: {
     flex: 1,
   },
   themeSelectorGroup: {
-    backgroundColor: '#f0f2f5',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    ...Platform.select({
-      web: {
-        boxShadow: 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff',
-      },
-      default: {
-        backgroundColor: '#e2e8f0',
-      },
-    }),
+    borderColor: '#e5e7eb',
   },
   themeSelectorLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9ca3af',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 16,
+    letterSpacing: 1,
+    marginBottom: 12,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   themeRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   themeBtnActive: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderWidth: 1,
+    borderColor: '#6366f1',
   },
   themeBtnTextActive: {
     color: '#6366f1',
-    fontWeight: '700',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   themeBtnDisabled: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    opacity: 0.5,
-    ...Platform.select({
-      web: {
-        boxShadow: '4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff',
-        cursor: 'not-allowed' as any,
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   themeBtnTextDisabled: {
-    color: '#64748b',
-    fontWeight: '700',
-    fontSize: 14,
+    color: '#9ca3af',
+    fontWeight: '600',
+    fontSize: 13,
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
-  sidebarNavItemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  deleteSessionBtn: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-    opacity: 0.6,
-  },
-  emptySessionsText: {
-    fontSize: 13,
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginVertical: 16,
-    fontStyle: 'italic',
-  },
+
+  // Selector common chips (used inside settings / welcome)
   selectorBar: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(240, 242, 245, 0.9)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.4)',
+    width: 0,
+    height: 0,
   },
   selectorContainer: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-    alignItems: Platform.OS === 'web' ? 'center' : 'stretch',
-    gap: Platform.OS === 'web' ? 24 : 12,
+    width: 0,
+    height: 0,
   },
   selectorSection: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 0,
+    height: 0,
   },
   selectorTitleText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginRight: 12,
-    minWidth: 80,
+    width: 0,
+    height: 0,
   },
   selectorSectionDivider: {
-    width: Platform.OS === 'web' ? 1 : 0,
-    height: Platform.OS === 'web' ? 24 : 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    width: 0,
+    height: 0,
   },
   selectorChipsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 2,
     gap: 8,
+    paddingVertical: 4,
   },
   selectorChip: {
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#ffffff',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    ...Platform.select({
-      web: {
-        boxShadow: '2px 2px 4px #d1d9e6, -2px -2px 4px #ffffff',
-      },
-      ios: {
-        shadowColor: '#d1d9e6',
-        shadowOffset: { width: 1, height: 1 },
-        shadowOpacity: 0.5,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    borderColor: '#e5e7eb',
   },
   selectorChipActive: {
     backgroundColor: '#6366f1',
     borderColor: '#6366f1',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 8px rgba(99, 102, 241, 0.3)',
-      },
-      ios: {
-        shadowColor: '#6366f1',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   selectorChipText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
+    fontWeight: '600',
+    color: '#4b5563',
     fontFamily: Platform.OS === 'web' ? 'Plus Jakarta Sans, sans-serif' : undefined,
   },
   selectorChipTextActive: {
