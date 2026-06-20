@@ -1,0 +1,40 @@
+# AI Model Fine-tuning Configuration for Qwen3-8B on Pile of Law
+
+model:
+  name: "Qwen/Qwen3-8B"         # Target Qwen model (can be Qwen/Qwen3-8B or Qwen/Qwen2.5-7B)
+  max_length: 1024              # Maximum sequence length
+  use_qlora: True               # Toggle QLoRA (4-bit) training
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  bias: "none"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+data:
+  dataset_name: "pile-of-law/pile-of-law"
+  subset: "r_legaladvice"       # Subset of Pile of Law (e.g. r_legaladvice, courtListener_opinions, etc.)
+  text_col: "text"
+  max_train_samples: 10000      # Limit dataset size for training
+  max_val_samples: 1000         # Limit dataset size for validation
+
+training:
+  batch_size: 2
+  gradient_accumulation_steps: 8 # Effective batch size = batch_size * grad_accum = 16
+  epochs: 1
+  learning_rate: 2e-4           # Standard QLoRA learning rate
+  weight_decay: 0.01
+  warmup_ratio: 0.03
+  seed: 42
+  device: "auto"                # "auto" (selects cuda, mps, or cpu), "cuda", "mps", "cpu"
+  save_dir: "outputs"
+  logging_steps: 10
+  eval_steps: 50

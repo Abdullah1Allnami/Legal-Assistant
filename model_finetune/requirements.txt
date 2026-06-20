@@ -1,0 +1,12 @@
+torch>=2.0.0
+transformers>=4.40.0,<4.49.0
+scikit-learn>=1.2.0
+pyyaml>=6.0
+pandas>=2.0.0
+tqdm>=4.65.0
+peft>=0.10.0
+bitsandbytes>=0.43.0
+accelerate>=0.29.0
+datasets>=2.18.0
+sentencepiece
+protobuf
