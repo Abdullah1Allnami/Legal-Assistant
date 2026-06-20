@@ -20,11 +20,11 @@ lora:
     - "down_proj"
 
 data:
-  dataset_name: "pile-of-law/pile-of-law"
+  dataset_name: "pile-of-law/pile-of-law-v1"
   subset: "r_legaladvice"       # Subset of Pile of Law (e.g. r_legaladvice, courtListener_opinions, etc.)
   text_col: "text"
-  max_train_samples: 10000      # Limit dataset size for training
-  max_val_samples: 1000         # Limit dataset size for validation
+  max_train_samples: 5000      # Limit dataset size for training
+  max_val_samples: 5000         # Limit dataset size for validation
 
 training:
   batch_size: 2
