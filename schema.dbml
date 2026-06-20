@@ -1,0 +1,39 @@
+// Database Markup Language (DBML) definition for Legal AI application
+
+Table users {
+  id varchar [pk, unique, note: "UUID identifier"]
+  email varchar [unique, not null]
+  hashed_password varchar [not null]
+  created_at timestamp [default: `now()`]
+  role varchar [default: "user", not null]
+
+  Note: "Stores user credentials and profile details"
+}
+
+Table chat_sessions {
+  id varchar [pk, unique, note: "UUID identifier"]
+  user_id varchar [not null, note: "Foreign key to users table"]
+  title varchar [default: "New Chat", not null]
+  language varchar [default: "auto", not null]
+  country varchar [default: "auto", not null]
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  Note: "Stores legal consultation chat sessions"
+}
+
+Table chat_messages {
+  id varchar [pk, unique, note: "UUID identifier"]
+  session_id varchar [not null, note: "Foreign key to chat_sessions table"]
+  role varchar [not null, note: "Role of the sender (e.g., 'user', 'assistant', 'error')"]
+  text varchar [not null, note: "Content of the message"]
+  citations json [note: "JSON containing the list of sources cited in the response"]
+  created_at timestamp [default: `now()`]
+
+  Note: "Stores individual messages within chat sessions"
+}
+
+// Relationships with actions
+Ref: chat_sessions.user_id > users.id [delete: cascade]
+Ref: chat_messages.session_id > chat_sessions.id [delete: cascade]

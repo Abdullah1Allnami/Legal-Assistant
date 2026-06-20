@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Legal AI Frontend",
+    "slug": "legal-ai-frontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
