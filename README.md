@@ -34,32 +34,6 @@ Minimalist, high-fidelity auth panels supporting traditional credentials and sec
 
 ## Architecture & Technology Stack
 
-```mermaid
-graph TD
-    subgraph Frontend (Expo Client)
-        A[Expo App Web/Mobile] --> B[Theme Context - Light/Dark]
-        A --> C[Language Context - EN/AR RTL]
-        A --> D[API Service Layer]
-    end
-
-    subgraph Backend (FastAPI Gateway)
-        D -->|REST / WebSocket| E[FastAPI Application]
-        E -->|Security & JWT Auth| F[Auth Router]
-        E -->|Chat History & Configs| G[Chat Router]
-        E -->|SQLAlchemy ORM| H[(PostgreSQL Database)]
-        E -->|Cache / Sessions| I[(Redis Cache)]
-        E -->|Local API Request| J[Ollama Service]
-    end
-
-    subgraph Host Machine
-        J -->|LLM Inference| K[Llama 3.2 Model]
-    end
-
-    subgraph Training Pipeline
-        L[Model Fine-Tuning] -->|PyTorch/HuggingFace| M[Configs & Custom Datasets]
-    end
-```
-
 ### Key Technologies
 * **Frontend**: Expo (React Native, TypeScript), React Native Web, Metro Runtime, Babel. Supports iOS, Android, and Web browsers.
 * **Backend**: FastAPI (Python 3.11+), SQLAlchemy ORM, Pydantic v2, WebSockets.
