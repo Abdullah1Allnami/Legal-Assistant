@@ -68,6 +68,20 @@ def chat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    system_prompt = f"""You are a professional legal AI assistant.
+
+User language: {request.language}
+Jurisdiction: {request.country}
+
+Important:
+- Explain clearly.
+- Do not pretend to be a lawyer.
+- Say this is general legal information, not official legal advice."""
+
+    messages = [
+        {"role": "system", "content": system_prompt}
+    ]
+
     # Verify session if session_id is provided
     if request.session_id:
         session = ChatRepository.get_session(db, request.session_id)
@@ -80,21 +94,15 @@ def chat(
         # Save user message to database
         ChatRepository.create_message(db, session_id=request.session_id, role="user", text=request.message)
 
-    prompt = f"""
-You are a professional legal AI assistant.
+        # Retrieve all messages in the session (including the current user message)
+        history_messages = ChatRepository.get_session_messages(db, request.session_id)
+        for msg in history_messages:
+            if msg.role in ("user", "assistant"):
+                messages.append({"role": msg.role, "content": msg.text})
+    else:
+        messages.append({"role": "user", "content": request.message})
 
-User language: {request.language}
-Jurisdiction: {request.country}
-
-Important:
-- Explain clearly.
-- Do not pretend to be a lawyer.
-- Say this is general legal information, not official legal advice.
-
-User question:
-{request.message}
-"""
-    answer = ChatService.ask_ollama(prompt)
+    answer = ChatService.ask_ollama_chat(messages)
 
     if request.session_id:
         # Save assistant message to database
@@ -214,6 +222,21 @@ async def websocket_chat(websocket: WebSocket, token: Optional[str] = None):
             country = data.get("country", "auto")
 
             # Validate active session and owner
+            system_prompt = f"""You are a professional cross-border legal AI assistant.
+
+User language: {language}
+Jurisdiction: {country}
+
+Rules:
+- Give clear, structured answers.
+- Mention that this is general legal information, not official legal advice.
+- If the question is about country law, mention the selected jurisdiction.
+- If you do not know, say you do not know."""
+
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+
             with SessionLocal() as db:
                 session = ChatRepository.get_session(db, session_id)
                 if not session or session.user_id != user_id or not session.is_active:
@@ -226,22 +249,13 @@ async def websocket_chat(websocket: WebSocket, token: Optional[str] = None):
                 # Save user message to database
                 ChatRepository.create_message(db, session_id=session_id, role="user", text=message)
 
-            prompt = f"""
-You are a professional cross-border legal AI assistant.
+                # Fetch conversation history (including the user message we just saved)
+                history_messages = ChatRepository.get_session_messages(db, session_id)
+                for msg in history_messages:
+                    if msg.role in ("user", "assistant"):
+                        messages.append({"role": msg.role, "content": msg.text})
 
-User language: {language}
-Jurisdiction: {country}
-
-Rules:
-- Give clear, structured answers.
-- Mention that this is general legal information, not official legal advice.
-- If the question is about country law, mention the selected jurisdiction.
-- If you do not know, say you do not know.
-
-User question:
-{message}
-"""
-            answer = ChatService.ask_ollama(prompt)
+            answer = ChatService.ask_ollama_chat(messages)
 
             # Standard websocket payload protocol
             await websocket.send_json({

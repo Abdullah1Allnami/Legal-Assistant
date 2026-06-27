@@ -114,6 +114,30 @@ class ChatService:
             return f"Ollama error: {str(e)}"
 
     @staticmethod
+    def ask_ollama_chat(messages: list) -> str:
+        try:
+            chat_url = settings.OLLAMA_URL.replace("/api/generate", "/api/chat")
+            response = requests.post(
+                chat_url,
+                json={
+                    "model": settings.OLLAMA_MODEL,
+                    "messages": messages,
+                    "stream": False
+                },
+                timeout=120
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("message", {}).get("content", "No response returned from Ollama.")
+            
+        except requests.exceptions.ConnectionError:
+            return "Ollama is not running. Please run: ollama serve on the host system."
+        except requests.exceptions.Timeout:
+            return "Ollama took too long to respond. Try a shorter question."
+        except Exception as e:
+            return f"Ollama error: {str(e)}"
+
+    @staticmethod
     def check_and_pull_model() -> None:
         try:
             base_url = settings.OLLAMA_URL.rsplit('/', 2)[0]

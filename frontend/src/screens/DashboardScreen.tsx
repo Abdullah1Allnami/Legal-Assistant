@@ -75,10 +75,9 @@ const TypingDot = ({ delay, styles }: { delay: number; styles: any }) => {
 const COUNTRIES = [
   { code: 'auto', name: 'Auto', flag: '🌐' },
   { code: 'United States', name: 'USA', flag: '🇺🇸' },
-  { code: 'United Kingdom', name: 'UK', flag: '🇬🇧' },
   { code: 'Saudi Arabia', name: 'Saudi Arabia', flag: '🇸🇦' },
-  { code: 'Germany', name: 'Germany', flag: '🇩🇪' },
-  { code: 'France', name: 'France', flag: '🇫🇷' },
+  { code: 'Nigeria', name: 'Nigeria', flag: '🇳🇬' },
+  { code: 'Egypt', name: 'Egypt', flag: '🇪🇬' },
 ];
 
 const LANGUAGES = [
@@ -101,10 +100,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
     switch (code) {
       case 'auto': return t('auto');
       case 'United States': return t('usa');
-      case 'United Kingdom': return t('uk');
       case 'Saudi Arabia': return t('saudi_arabia');
-      case 'Germany': return t('germany');
-      case 'France': return t('france');
+      case 'Nigeria': return t('nigeria');
+      case 'Egypt': return t('egypt');
       default: return code;
     }
   };

@@ -16,7 +16,7 @@ The landing screen provides a premium, modern introduction to the legal assistan
 </p>
 
 ### 2. Legal Consultation Dashboard
-The core interface features a clean multi-panel chat workspace with jurisdiction filtering (e.g., USA, UK, Saudi Arabia, Germany, France), language localization switches (English / Arabic RTL), quick prompt suggestions, and a persistent side history menu.
+The core interface features a clean multi-panel chat workspace with jurisdiction filtering (e.g., USA, Saudi Arabia, Nigeria, Egypt), language localization switches (English / Arabic RTL), quick prompt suggestions, and a persistent side history menu.
 
 <p align="center">
   <img src="UI/dahsboard_page.png" width="90%" alt="Dashboard Page" />
@@ -49,7 +49,7 @@ Minimalist, high-fidelity auth panels supporting traditional credentials and sec
    * Dynamically switches theme and text-direction (`ltr` / `rtl`).
    * Complete dictionary translations in `LanguageContext.tsx`.
 2. **Context-Aware Jurisdiction Filters**:
-   * Tailor AI legal answers to specific countries (e.g., USA, UK, Saudi Arabia, Germany, France).
+   * Tailor AI legal answers to specific countries (e.g., USA, Saudi Arabia, Nigeria, Egypt).
    * Prompts enforce that the AI acts as an assistant and reminds users that responses are for general information rather than official advice.
 3. **Dual Transport Protocol**:
    * Standard REST endpoints for quick queries.
