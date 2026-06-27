@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_URL: str
     OLLAMA_URL: str = "http://host.docker.internal:11434/api/generate"
-    OLLAMA_MODEL: str = "llama3.2"
+    # OLLAMA_MODEL: str = "llama3.2"
+    OLLAMA_MODEL: str = "qwen2.5:7b"
     JWT_SECRET_KEY: str
     JWT_REFRESH_SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
