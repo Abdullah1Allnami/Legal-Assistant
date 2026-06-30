@@ -12,8 +12,8 @@ class Settings(BaseSettings):
 
     # Gemini Config
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
-    EMBEDDING_MODEL: str = "text-embedding-004"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
+    EMBEDDING_MODEL: str = "gemini-embedding-2"
     GEMINI_TEMPERATURE: float = 0.2
     GEMINI_MAX_OUTPUT_TOKENS: int = 2048
 

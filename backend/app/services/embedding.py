@@ -32,12 +32,12 @@ class EmbeddingService:
         Generates embedding for a single string using text-embedding-004.
         """
         if not cls._ensure_configured():
-            # Return a mock vector of length 768
+            # Return a mock vector of length 3072
             # We seed the random number generator based on the text hash so that the same text
             # produces the same mock embedding (deterministic mock vector search!)
             text_hash = hash(text)
             random.seed(text_hash)
-            return [random.uniform(-0.1, 0.1) for _ in range(768)]
+            return [random.uniform(-0.1, 0.1) for _ in range(3072)]
 
         try:
             model_name = f"models/{settings.EMBEDDING_MODEL}"
@@ -52,7 +52,7 @@ class EmbeddingService:
             # Fallback to deterministic mock on exception
             text_hash = hash(text)
             random.seed(text_hash)
-            return [random.uniform(-0.1, 0.1) for _ in range(768)]
+            return [random.uniform(-0.1, 0.1) for _ in range(3072)]
 
     @classmethod
     def get_embeddings(cls, texts: List[str]) -> List[List[float]]:
