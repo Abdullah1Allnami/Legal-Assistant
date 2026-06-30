@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.core.redis import check_redis_connection
-from app.routers import auth, users, chat
+from app.routers import auth, users, chat, documents, kg
 from app.services.chat import ChatService
 import app.models
 
@@ -29,8 +29,7 @@ async def lifespan(app: FastAPI):
     logger.info("Checking Redis connection...")
     check_redis_connection()
 
-    logger.info("Starting Ollama model check/pull in the background...")
-    threading.Thread(target=ChatService.check_and_pull_model, daemon=True).start()
+    logger.info("AI Service initialized. Ready for Gemini API queries.")
     yield
 
 app = FastAPI(
@@ -98,6 +97,8 @@ async def generic_exception_handler(request: Request, exc: Exception):
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(chat.router)
+app.include_router(documents.router)
+app.include_router(kg.router)
 
 @app.get("/health")
 def health():

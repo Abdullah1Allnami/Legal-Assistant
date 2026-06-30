@@ -1,11 +1,13 @@
-import requests
 import logging
 from uuid import uuid4
-from typing import Optional
+from typing import Optional, List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.redis import redis_client
 from app.repositories.chat import ChatRepository
+from app.services.gemini import GeminiService
+from app.services.retrieval import RetrievalService
+from app.services.citation import CitationService
 
 logger = logging.getLogger(__name__)
 
@@ -90,82 +92,79 @@ class ChatService:
                 return _memory_sessions[session_id]["active"]
         return False
 
-    @staticmethod
-    def ask_ollama(prompt: str) -> str:
-        try:
-            response = requests.post(
-                settings.OLLAMA_URL,
-                json={
-                    "model": settings.OLLAMA_MODEL,
-                    "prompt": prompt,
-                    "stream": False
-                },
-                timeout=120
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data.get("response", "No response returned from Ollama.")
-            
-        except requests.exceptions.ConnectionError:
-            return "Ollama is not running. Please run: ollama serve on the host system."
-        except requests.exceptions.Timeout:
-            return "Ollama took too long to respond. Try a shorter question."
-        except Exception as e:
-            return f"Ollama error: {str(e)}"
+    @classmethod
+    def ask_gemini_rag(
+        cls, 
+        db: Session, 
+        user_query: str, 
+        history_messages: List[Dict[str, str]], 
+        language: str, 
+        country: str
+    ) -> Tuple[str, List[Any]]:
+        """
+        Runs hybrid retrieval (vector store + KG), constructs grounded prompts,
+        calls Google Gemini, generates source citations, and returns (answer, citations).
+        """
+        # 1. Retrieve legal context matching current user query
+        context_str, retrieved_docs, retrieved_kg = RetrievalService.retrieve_context(
+            db=db,
+            query=user_query,
+            jurisdiction=country,
+            language=language
+        )
 
-    @staticmethod
-    def ask_ollama_chat(messages: list) -> str:
-        try:
-            chat_url = settings.OLLAMA_URL.replace("/api/generate", "/api/chat")
-            response = requests.post(
-                chat_url,
-                json={
-                    "model": settings.OLLAMA_MODEL,
-                    "messages": messages,
-                    "stream": False
-                },
-                timeout=120
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data.get("message", {}).get("content", "No response returned from Ollama.")
-            
-        except requests.exceptions.ConnectionError:
-            return "Ollama is not running. Please run: ollama serve on the host system."
-        except requests.exceptions.Timeout:
-            return "Ollama took too long to respond. Try a shorter question."
-        except Exception as e:
-            return f"Ollama error: {str(e)}"
+        # 2. Build the System Instruction
+        system_instruction = f"""You are a professional cross-border legal AI assistant.
+Your goal is to answer the user's questions based ONLY on the retrieved legal evidence and knowledge graph excerpts provided in the context.
 
-    @staticmethod
-    def check_and_pull_model() -> None:
+Rules:
+- Formulate your legal reasoning step-by-step.
+- Ground every statement strictly in the provided excerpts.
+- Cite your sources by appending "[Source X]" (e.g. "[Source 1]", "[Source 2]") to the sentences referring to that source.
+- Do NOT pretend to be a lawyer. State clearly that this is general legal information and not official legal advice.
+- If the retrieved context does not contain sufficient details to answer the user query, state clearly that you have insufficient information.
+- Provide a confidence indicator (e.g. "Confidence: High", "Confidence: Medium", "Confidence: Insufficient Information") at the end.
+
+User settings:
+- Selected Jurisdiction: {country}
+- Output Language: {language}
+"""
+
+        # 3. Assemble chat payload for Gemini
+        # We format historical turns, and for the final user query, we inject the retrieved context.
+        formatted_messages = []
+        for msg in history_messages:
+            formatted_messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+
+        # Inject the context and query block into the final turn
+        final_prompt = (
+            f"Here is the retrieved legal context for grounding:\n"
+            f"{context_str}\n\n"
+            f"-----------------\n\n"
+            f"User Question: {user_query}\n"
+            f"Explain clearly, step-by-step, referencing the above sources where appropriate."
+        )
+        
+        formatted_messages.append({
+            "role": "user",
+            "content": final_prompt
+        })
+
+        # 4. Generate response via Gemini
         try:
-            base_url = settings.OLLAMA_URL.rsplit('/', 2)[0]
-            tags_url = f"{base_url}/api/tags"
-            pull_url = f"{base_url}/api/pull"
-            
-            response = requests.get(tags_url, timeout=5)
-            if response.status_code == 200:
-                models = response.json().get("models", [])
-                model_names = []
-                for m in models:
-                    name = m.get("name")
-                    if name:
-                        model_names.append(name)
-                        if ":" in name:
-                            model_names.append(name.split(":")[0])
-                
-                target = settings.OLLAMA_MODEL
-                if target not in model_names:
-                    logger.info(f"Model '{target}' not found in Ollama. Pulling it automatically...")
-                    pull_res = requests.post(pull_url, json={"name": target, "stream": False}, timeout=300)
-                    if pull_res.status_code == 200:
-                        logger.info(f"Successfully pulled model '{target}'.")
-                    else:
-                        logger.error(f"Failed to pull model '{target}': {pull_res.text}")
-                else:
-                    logger.info(f"Model '{target}' is ready in Ollama.")
-            else:
-                logger.warning(f"Ollama tags endpoint returned status {response.status_code}")
+            answer = GeminiService.chat(messages=formatted_messages, system_instruction=system_instruction)
         except Exception as e:
-            logger.error(f"Error checking/pulling Ollama model: {e}")
+            logger.error(f"Failed to query Gemini: {e}")
+            answer = f"An error occurred while generating response: {str(e)}"
+
+        # 5. Extract citations based on the response text and retrieved documents
+        citations = CitationService.generate_citations(
+            response_text=answer,
+            retrieved_documents=retrieved_docs,
+            retrieved_kg_entities=retrieved_kg
+        )
+
+        return answer, citations

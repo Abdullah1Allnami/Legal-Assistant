@@ -338,7 +338,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout }) =>
           id: Date.now().toString(),
           sender: 'ai',
           type: 'text',
-          text: response.error?.message || 'Error communicating with assistant. Please make sure Ollama is running.',
+          text: response.error?.message || 'Error communicating with assistant. Please check your backend connection.',
         };
         setMessages((prev) => [...prev, errorMsg]);
         scrollToBottom();

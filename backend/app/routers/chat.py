@@ -68,20 +68,7 @@ def chat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    system_prompt = f"""You are a professional legal AI assistant.
-
-User language: {request.language}
-Jurisdiction: {request.country}
-
-Important:
-- Explain clearly.
-- Do not pretend to be a lawyer.
-- Say this is general legal information, not official legal advice."""
-
-    messages = [
-        {"role": "system", "content": system_prompt}
-    ]
-
+    messages_payload = []
     # Verify session if session_id is provided
     if request.session_id:
         session = ChatRepository.get_session(db, request.session_id)
@@ -94,19 +81,27 @@ Important:
         # Save user message to database
         ChatRepository.create_message(db, session_id=request.session_id, role="user", text=request.message)
 
-        # Retrieve all messages in the session (including the current user message)
+        # Retrieve previous messages (excluding the user message we just saved)
         history_messages = ChatRepository.get_session_messages(db, request.session_id)
-        for msg in history_messages:
+        for msg in history_messages[:-1]:
             if msg.role in ("user", "assistant"):
-                messages.append({"role": msg.role, "content": msg.text})
+                messages_payload.append({"role": msg.role, "content": msg.text})
     else:
-        messages.append({"role": "user", "content": request.message})
+        pass
 
-    answer = ChatService.ask_ollama_chat(messages)
+    # Call Gemini RAG
+    answer, citations = ChatService.ask_gemini_rag(
+        db=db,
+        user_query=request.message,
+        history_messages=messages_payload,
+        language=request.language,
+        country=request.country
+    )
 
     if request.session_id:
-        # Save assistant message to database
-        ChatRepository.create_message(db, session_id=request.session_id, role="assistant", text=answer)
+        # Save assistant message to database with citations
+        citations_db = [c.model_dump() for c in citations]
+        ChatRepository.create_message(db, session_id=request.session_id, role="assistant", text=answer, citations=citations_db)
         
         # Auto rename title if it was default
         session = ChatRepository.get_session(db, request.session_id)
@@ -116,7 +111,7 @@ Important:
 
     return StandardResponse(
         success=True,
-        data=ChatResponse(answer=answer, citations=[])
+        data=ChatResponse(answer=answer, citations=citations)
     )
 
 # Past Chats Management Endpoints
@@ -222,21 +217,7 @@ async def websocket_chat(websocket: WebSocket, token: Optional[str] = None):
             country = data.get("country", "auto")
 
             # Validate active session and owner
-            system_prompt = f"""You are a professional cross-border legal AI assistant.
-
-User language: {language}
-Jurisdiction: {country}
-
-Rules:
-- Give clear, structured answers.
-- Mention that this is general legal information, not official legal advice.
-- If the question is about country law, mention the selected jurisdiction.
-- If you do not know, say you do not know."""
-
-            messages = [
-                {"role": "system", "content": system_prompt}
-            ]
-
+            messages_payload = []
             with SessionLocal() as db:
                 session = ChatRepository.get_session(db, session_id)
                 if not session or session.user_id != user_id or not session.is_active:
@@ -249,13 +230,20 @@ Rules:
                 # Save user message to database
                 ChatRepository.create_message(db, session_id=session_id, role="user", text=message)
 
-                # Fetch conversation history (including the user message we just saved)
+                # Fetch conversation history (excluding the current user message)
                 history_messages = ChatRepository.get_session_messages(db, session_id)
-                for msg in history_messages:
+                for msg in history_messages[:-1]:
                     if msg.role in ("user", "assistant"):
-                        messages.append({"role": msg.role, "content": msg.text})
+                        messages_payload.append({"role": msg.role, "content": msg.text})
 
-            answer = ChatService.ask_ollama_chat(messages)
+                # Call Gemini RAG
+                answer, citations = ChatService.ask_gemini_rag(
+                    db=db,
+                    user_query=message,
+                    history_messages=messages_payload,
+                    language=language,
+                    country=country
+                )
 
             # Standard websocket payload protocol
             await websocket.send_json({
@@ -263,9 +251,10 @@ Rules:
                 "content": answer
             })
 
+            citations_payload = [c.model_dump() for c in citations]
             await websocket.send_json({
                 "type": "citation",
-                "citations": []
+                "citations": citations_payload
             })
 
             await websocket.send_json({
@@ -274,7 +263,8 @@ Rules:
 
             # Save assistant response to database and auto rename title
             with SessionLocal() as db:
-                ChatRepository.create_message(db, session_id=session_id, role="assistant", text=answer, citations=[])
+                citations_db = [c.model_dump() for c in citations]
+                ChatRepository.create_message(db, session_id=session_id, role="assistant", text=answer, citations=citations_db)
                 
                 # Check and auto-generate title if it's currently default
                 session = ChatRepository.get_session(db, session_id)

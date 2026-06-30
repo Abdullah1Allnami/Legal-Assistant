@@ -16,7 +16,7 @@ This document outlines the tasks, timeline, current status, and scientific refer
 | 6 | **Document Processing Module** | Planned | July 5, 2026 | Design and implement Python-based parsing scripts for PDFs/legal contracts and hierarchical paragraph chunking logic. |
 | 7 | **Embedding Pipeline** | Planned | July 12, 2026 | Set up local embedding generation (e.g., using `nomic-embed-text` or SentenceTransformers) and database indexing (pgvector). |
 | 8 | **Retrieval System** | Planned | July 18, 2026 | Implement hybrid search (vector search + keyword BM25), reranking, and jurisdiction-based metadata filtering. |
-| 9 | **LLM Integration** | In Progress | June 25, 2026 | Integrating Ollama `llama3.2` local LLM and prompt templates for RAG context injection and context window management. |
+| 9 | **LLM Integration** | Completed | June 25, 2026 | Integrating Google Gemini LLM and prompt templates for RAG context injection and context window management. |
 | 10 | **Citation Generation** | Planned | July 22, 2026 | Create source-attribution mechanism to map generated answer segments back to raw document paragraphs. |
 | 11 | **Security Layer** | In Progress | July 25, 2026 | Standard JWT flow and bcrypt password hashing are complete. Implementing rate limiting, CORS safeguards, and document access ACLs. |
 | 12 | **Testing** | In Progress | July 28, 2026 | Writing unit and integration tests (using Pytest) for authentication endpoints, WebSocket gates, and document pipelines. |
@@ -32,14 +32,14 @@ The following research papers, documentation sources, and system standards guide
 
 ### 1. RAG & Information Retrieval Architecture
 *   **Lewis, P., et al. (2020).** *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.* NeurIPS. [arXiv:2005.11401](https://arxiv.org/abs/2005.11401)
-    *   *Application:* Core architecture framework for routing context from pgvector to Ollama.
+    *   *Application:* Core architecture framework for routing context from pgvector to Google Gemini.
 *   **Robertson, S., & Zaragoza, H. (2009).** *The Probabilistic Relevance Framework: BM25 and Beyond.* Foundations and Trends in Information Retrieval.
     *   *Application:* Hybrid retrieval logic combined with vector embeddings.
 
 ### 2. Legal NLP & Domain Adaptation
 *   **Chalkidis, I., et al. (2020).** *LEGAL-BERT: The Muppets straight out of Law School.* Findings of EMNLP. [arXiv:2010.02559](https://arxiv.org/abs/2010.02559)
     *   *Application:* Pre-training and fine-tuning protocols for legal text representations.
-*   **Ollama API Documentation.** [Ollama GitHub Docs](https://github.com/ollama/ollama/blob/main/docs/api.md)
+*   **Google Gemini API Documentation.** [Gemini API Docs](https://ai.google.dev/gemini-api/docs)
     *   *Application:* Integration pattern for standard generation and chat models.
 
 ### 3. LLM Hallucinations & Citations

@@ -1,6 +1,6 @@
 # LexisAI: Enterprise-Grade AI Legal Assistant
 
-LexisAI is a professional-grade, cross-border, AI-powered Legal Assistant tailored for modern legal practitioners. It features a cross-platform mobile and web application built on **Expo (React Native)**, a high-performance **FastAPI** backend acting as a distributed Legal AI Gateway, a relational **PostgreSQL** database, **Redis** caching, and a locally hosted LLM interface powered by **Ollama** (`llama3.2`).
+LexisAI is a professional-grade, cross-border, AI-powered Legal Assistant tailored for modern legal practitioners. It features a cross-platform mobile and web application built on **Expo (React Native)**, a high-performance **FastAPI** backend acting as a distributed Legal AI Gateway, a relational **PostgreSQL** database, **Redis** caching, and Google Gemini LLM integration for legal analysis.
 
 The system includes a dedicated boilerplate pipeline for **AI Model Fine-Tuning** to train models on custom jurisdiction case files or contracts.
 
@@ -38,7 +38,7 @@ Minimalist, high-fidelity auth panels supporting traditional credentials and sec
 * **Frontend**: Expo (React Native, TypeScript), React Native Web, Metro Runtime, Babel. Supports iOS, Android, and Web browsers.
 * **Backend**: FastAPI (Python 3.11+), SQLAlchemy ORM, Pydantic v2, WebSockets.
 * **Database & Cache**: PostgreSQL (Relational storage for users, chats, and messages), Redis (Session token cache).
-* **AI Core**: Ollama running locally (`llama3.2`) for legal analysis, query resolution, and document extraction.
+* **AI Core**: Google Gemini API for legal analysis, query resolution, and document extraction.
 * **Containerization**: Docker, Docker Compose.
 
 ---
@@ -59,7 +59,7 @@ Minimalist, high-fidelity auth panels supporting traditional credentials and sec
 5. **Secure Authentication**:
    * Standardized JWT access and refresh token authentication flows with secure password hashing via `bcrypt`.
 6. **Docker-Orchestrated Local Startup**:
-   * Shell script validates Docker status, checks host Ollama, pulls the model if missing, and initializes all containers automatically.
+   * Shell script validates Docker status and initializes all containers automatically.
 
 ---
 
@@ -73,7 +73,7 @@ Minimalist, high-fidelity auth panels supporting traditional credentials and sec
 │   │   ├── repositories/      # Database access layers (ChatRepository, UserRepository)
 │   │   ├── routers/           # FastAPI routers (auth, users, chat)
 │   │   ├── schemas/           # Pydantic validation schemas
-│   │   ├── services/          # Business logic & Ollama API integrations (chat.py)
+│   │   ├── services/          # Business logic & Google Gemini integration (chat.py)
 │   │   └── main.py            # App initialization, CORS, exception handlers
 │   ├── .env.example           # Reference environment configurations
 │   ├── Dockerfile             # Multi-stage Python build
@@ -115,8 +115,6 @@ Create a `.env` file in the `/backend` folder matching the `.env.example` schema
 | `PROJECT_NAME` | Project name displayed on FastAPI Swagger | `Legal AI Gateway` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@db:5432/legal_ai` |
 | `REDIS_URL` | Redis instance connection string | `redis://redis:6379/0` |
-| `OLLAMA_URL` | Host machine Ollama endpoint | `http://host.docker.internal:11434/api/generate` |
-| `OLLAMA_MODEL` | LLM model tag in Ollama | `llama3.2` |
 | `JWT_SECRET_KEY` | HS256 secret key for signing access tokens | *Change to a strong random key* |
 | `JWT_REFRESH_SECRET_KEY` | HS256 secret key for refresh tokens | *Change to a strong random key* |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Lifetime of an access token | `30` |
@@ -133,12 +131,10 @@ The frontend environment variables are loaded inside `App.tsx` and `src/services
 
 ### Prerequisites
 * **Docker & Docker Compose** installed and running on your system.
-* **Ollama** running locally on your host machine.
-  * Download it from [ollama.com](https://ollama.com/).
-  * Verify it is running by visiting `http://localhost:11434` or running `ollama list` in your command line.
+* A valid Google **Gemini API Key** configured in your environment settings (`backend/.env`).
 
-### Option 1: Automatic Launch (Recommended)
-We provide an interactive script `run.sh` at the root directory which takes care of safety checks, pulls missing models, stops conflicts, and starts containers:
+### Startup
+We provide an interactive script `run.sh` at the root directory which handles safety checks, stops conflicts, and starts containers:
 
 1. Ensure the script is executable:
    ```bash
@@ -150,21 +146,8 @@ We provide an interactive script `run.sh` at the root directory which takes care
    ```
    The script will:
    * Verify Docker is active.
-   * Verify Ollama is running on the host system.
-   * Check if `llama3.2` is pulled. If missing, it pulls it via the Ollama CLI or Local API automatically.
    * Gracefully stop and clean up stale containers from previous executions to avoid port conflicts.
    * Run `docker compose up --build` to launch PostgreSQL, Redis, FastAPI, and the Expo Frontend.
-
-### Option 2: Manual Compose Launch
-If you prefer running compose commands directly:
-1. Pull the model on your machine:
-   ```bash
-   ollama pull llama3.2
-   ```
-2. Build and start containers:
-   ```bash
-   docker compose up --build
-   ```
 
 ---
 
@@ -195,7 +178,7 @@ Below is a breakdown of the key endpoints exposed by the **FastAPI Legal AI Gate
 ### Chat Router (`/session` & `/chat` & `/gateway`)
 * `POST /session/start` - Creates a new active legal consultation session.
 * `POST /session/end` - Deactivates/ends an existing chat session.
-* `POST /gateway/chat` - Sends a query to the local LLM. Receives a structured prompt-engineered legal response (REST mode).
+* `POST /gateway/chat` - Sends a query to the Gemini LLM. Receives a structured prompt-engineered legal response (REST mode).
 * `GET /chat/sessions` - Returns the history of all chat sessions for the active user.
 * `GET /chat/sessions/{session_id}` - Fetches detailed chat messages of a specific session.
 * `PATCH /chat/sessions/{session_id}` - Renames the chat session title.
